@@ -1,0 +1,26 @@
+# Claude Code — ignore local settings but keep any project skills
+.claude/*
+!.claude/skills/
+!.claude/skills/**
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+
+# Runtime data (never commit)
+*.db
+*.db-shm
+*.db-wal
+staging/
+
+# Secrets
+.env
+
+# Nix
+result
+result-*
+.direnv/
