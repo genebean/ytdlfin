@@ -1,0 +1,10 @@
+<select id="quality" name="quality">
+  <option value="best"{% if quality_selected == "best" %} selected{% endif %}>Best available</option>
+  {% if resolutions %}
+    {% for h in resolutions %}
+  <option value="{{ h }}p"{% if quality_selected == (h | string) ~ "p" %} selected{% endif %}>{{ h }}p</option>
+    {% endfor %}
+  {% else %}
+  <option value="1080p"{% if quality_selected == "1080p" %} selected{% endif %}>1080p</option>
+  {% endif %}
+</select>

@@ -2,15 +2,23 @@
 
 from __future__ import annotations
 
-from typing import Literal
-from pydantic import BaseModel, HttpUrl
+import re
+
+from pydantic import BaseModel, field_validator
 
 
 class DownloadRequest(BaseModel):
     url: str
     category_id: int
-    quality: Literal["1080p", "best"] = "1080p"
+    quality: str = "1080p"
     custom_title: str | None = None
+
+    @field_validator("quality")
+    @classmethod
+    def validate_quality(cls, v: str) -> str:
+        if v == "best" or re.match(r"^\d+p$", v):
+            return v
+        return "1080p"
 
 
 class CategoryCreate(BaseModel):

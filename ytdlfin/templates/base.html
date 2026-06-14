@@ -1,8 +1,16 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="auto">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Set theme before CSS loads to prevent flash of wrong theme -->
+  <script>
+    (function () {
+      var stored = localStorage.getItem('ytdlfin-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', stored || (prefersDark ? 'dark' : 'light'));
+    })();
+  </script>
   <title>{% block title %}ytdlfin{% endblock %}</title>
   <link
     rel="stylesheet"
@@ -30,6 +38,16 @@
     .overflow-x { overflow-x: auto; }
     td, th { white-space: nowrap; }
     td.wrap, th.wrap { white-space: normal; max-width: 22rem; overflow: hidden; text-overflow: ellipsis; }
+    /* htmx loading indicator — hidden until a request is in flight */
+    .htmx-indicator { opacity: 0; transition: opacity 200ms; }
+    .htmx-request.htmx-indicator { opacity: 1; }
+    /* Dark mode overrides for hardcoded badge/flash colors */
+    [data-theme="dark"] .badge-done    { background: #0d2b14; color: #6ece8a; }
+    [data-theme="dark"] .badge-failed  { background: #2b0d0e; color: #e87b80; }
+    [data-theme="dark"] .badge-skipped { background: #2b2200; color: #d4a017; }
+    [data-theme="dark"] .flash-success { background: #0d2b14; color: #6ece8a; border-color: #1a4a22; }
+    [data-theme="dark"] .flash-error   { background: #2b0d0e; color: #e87b80; border-color: #4a1a1c; }
+    [data-theme="dark"] .flash-info    { background: #0d2030; color: #6ab0c8; border-color: #1a3a4a; }
   </style>
   {% block head %}{% endblock %}
 </head>
@@ -45,6 +63,9 @@
         {% if user and user.is_admin %}
         <li><a href="/admin">Admin</a></li>
         {% endif %}
+        <li>
+          <button id="theme-toggle" class="outline secondary" style="padding:0.3em 0.7em;font-size:1rem;line-height:1;border:none;background:none;cursor:pointer" onclick="toggleTheme()" aria-label="Toggle light/dark theme"></button>
+        </li>
         {% if user %}
         <li>
           <form action="/auth/logout" method="post" style="margin:0">
@@ -63,5 +84,30 @@
 
     {% block content %}{% endblock %}
   </main>
+
+  <script>
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      var btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+
+    function toggleTheme() {
+      var current = document.documentElement.getAttribute('data-theme');
+      var next = current === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('ytdlfin-theme', next);
+      applyTheme(next);
+    }
+
+    // Initialise toggle icon to match the already-applied theme.
+    applyTheme(document.documentElement.getAttribute('data-theme') || 'light');
+
+    // Follow system preference changes unless the user has made an explicit choice.
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+      if (!localStorage.getItem('ytdlfin-theme')) {
+        applyTheme(e.matches ? 'dark' : 'light');
+      }
+    });
+  </script>
 </body>
 </html>

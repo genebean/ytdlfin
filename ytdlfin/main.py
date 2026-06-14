@@ -17,6 +17,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
+import re
+
 from . import db as database
 from .auth import (
     NotAdmin,
@@ -29,7 +31,7 @@ from .auth import (
 )
 from .models import CategoryCreate, CategoryUpdate, DownloadRequest
 from .worker import download_worker, recover_staging
-from .ytdlp import STAGING_DIR
+from .ytdlp import STAGING_DIR, get_available_resolutions
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +139,14 @@ def create_app() -> FastAPI:
     async def index(request: Request, user=Depends(get_current_user)):
         categories = await database.list_categories(request.app.state.db)
         queue = await database.get_queue(request.app.state.db)
-        return _render("index.html", request, categories=categories, queue=queue)
+        return _render(
+            "index.html",
+            request,
+            categories=categories,
+            queue=queue,
+            resolutions=[],
+            quality_selected="1080p",
+        )
 
     @app.get("/history", response_class=HTMLResponse)
     async def history_page(
@@ -201,7 +210,7 @@ def create_app() -> FastAPI:
             flash(request, "Invalid category selected.", "error")
             return RedirectResponse(url="/", status_code=303)
 
-        if quality not in ("1080p", "best"):
+        if quality != "best" and not re.match(r"^\d+p$", quality):
             quality = "1080p"
 
         record = await database.create_download(
@@ -217,6 +226,35 @@ def create_app() -> FastAPI:
 
         flash(request, "Download queued.", "success")
         return RedirectResponse(url="/", status_code=303)
+
+    # ── HTMX partial: resolution picker ──────────────────────────────────────
+
+    @app.get("/api/resolutions", response_class=HTMLResponse)
+    async def api_resolutions(
+        request: Request, url: str = "", user=Depends(get_current_user)
+    ):
+        """Return the quality <select> HTML filled with available resolutions for url."""
+        resolutions: list[int] = []
+        if url:
+            try:
+                loop = asyncio.get_event_loop()
+                resolutions = await loop.run_in_executor(
+                    None, lambda: get_available_resolutions(url)
+                )
+            except Exception:
+                logger.warning("Resolution lookup failed for %s", url)
+
+        if 1080 in resolutions:
+            selected = "1080p"
+        elif resolutions:
+            selected = f"{resolutions[0]}p"
+        else:
+            selected = "1080p"
+
+        return templates.TemplateResponse(
+            "partials/quality_select.html",
+            {"request": request, "resolutions": resolutions, "quality_selected": selected},
+        )
 
     # ── HTMX partial: active queue ────────────────────────────────────────────
 

@@ -39,6 +39,29 @@ def extract_info(url: str) -> dict:
         return ydl.extract_info(url, download=False)
 
 
+def get_available_resolutions(url: str) -> list[int]:
+    """Return unique video heights for url, sorted descending."""
+    info = extract_info(url)
+    formats = info.get("formats") or []
+    heights = {
+        int(f["height"])
+        for f in formats
+        if f.get("height")
+        and isinstance(f["height"], (int, float))
+        and int(f["height"]) > 0
+        and f.get("vcodec") not in (None, "none")
+    }
+    return sorted(heights, reverse=True)
+
+
+def _format_for_height(h: int) -> str:
+    return (
+        f"bestvideo[ext=mp4][height<={h}]+bestaudio[ext=m4a]"
+        f"/bestvideo[height<={h}]+bestaudio"
+        f"/best[height<={h}]/best"
+    )
+
+
 def _make_progress_hook(on_progress):
     """Return a yt-dlp progress hook that calls on_progress(status, d)."""
     def hook(d: dict):
@@ -65,7 +88,12 @@ def run_download(
     staging_dir = STAGING_DIR / str(download_id)
     staging_dir.mkdir(parents=True, exist_ok=True)
 
-    fmt = FORMAT_BEST if quality == "best" else FORMAT_1080P
+    if quality == "best":
+        fmt = FORMAT_BEST
+    elif quality.endswith("p") and quality[:-1].isdigit():
+        fmt = _format_for_height(int(quality[:-1]))
+    else:
+        fmt = FORMAT_1080P
     archive_path = str(Path(category_path) / ".ytdl-archive.txt")
 
     ydl_opts: dict = {

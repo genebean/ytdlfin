@@ -13,6 +13,12 @@
     placeholder="https://www.youtube.com/watch?v=…"
     required
     autofocus
+    hx-get="/api/resolutions"
+    hx-trigger="blur"
+    hx-target="#quality-wrapper"
+    hx-swap="innerHTML"
+    hx-indicator="#quality-loading"
+    hx-include="this"
   />
 
   <label for="custom_title">Custom title <small>(optional — leave blank to use the video's title)</small></label>
@@ -38,14 +44,12 @@
     </div>
 
     <div>
-      <label>Quality</label>
-      <div style="display:flex;gap:1.5rem;padding-top:0.5rem">
-        <label style="font-weight:normal;cursor:pointer">
-          <input type="radio" name="quality" value="1080p" checked /> 1080p
-        </label>
-        <label style="font-weight:normal;cursor:pointer">
-          <input type="radio" name="quality" value="best" /> Best available
-        </label>
+      <label for="quality">
+        Quality
+        <span id="quality-loading" class="htmx-indicator" style="font-size:0.8em;font-weight:normal;margin-left:0.4em">fetching…</span>
+      </label>
+      <div id="quality-wrapper">
+        {% include "partials/quality_select.html" %}
       </div>
     </div>
   </div>
