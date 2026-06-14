@@ -181,6 +181,39 @@ userinfo response. Two groups are configured via env vars:</p>
 successful PocketID login. Their session is cleared immediately. No per-request DB lookup
 is needed — group membership is resolved once at login and stored in the session.</p>
 
+<h2>Reverse Proxy</h2>
+<p>ytdlfin is designed to run behind nginx with TLS termination. Two things must be
+configured correctly for the OIDC flow and session cookies to work:</p>
+
+<h3>nginx configuration</h3>
+<p>nginx must forward the real client IP and scheme so uvicorn can reconstruct the
+correct request URL:</p>
+<pre>location / {
+    proxy_pass http://127.0.0.1:8000;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}</pre>
+
+<h3>Application behaviour</h3>
+<p>When <code>HTTPS_ONLY=true</code> (set automatically by the NixOS module):</p>
+<ul>
+  <li>uvicorn trusts <code>X-Forwarded-Proto</code> from upstream proxies, so
+  <code>request.url.scheme</code> returns <code>https</code>. This is required for
+  authlib to construct the correct OIDC redirect URI.</li>
+  <li><code>SessionMiddleware</code> marks cookies <code>Secure</code>, so browsers
+  only transmit the session over TLS.</li>
+</ul>
+<p><code>TRUSTED_PROXY_IPS</code> controls which upstream IPs are allowed to set
+forwarded headers. The default <code>*</code> (trust all) is appropriate for LAN
+deployments protected by a physical firewall. Set to <code>127.0.0.1</code> if
+tighter control is needed.</p>
+
+<p class="note"><strong>Dev note:</strong> Leave <code>HTTPS_ONLY</code> unset (defaults
+to <code>false</code>) for local HTTP development. The session cookie will not be marked
+Secure, which is correct for plain HTTP.</p>
+
 <h2>API Endpoints</h2>
 <table>
   <tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr>
@@ -218,7 +251,37 @@ is needed — group membership is resolved once at login and stored in the sessi
   <tr><td><code>USER_GROUP</code></td><td>Yes</td><td>—</td><td>PocketID group name for regular user access</td></tr>
   <tr><td><code>PORT</code></td><td>No</td><td>8000</td><td>HTTP listen port</td></tr>
   <tr><td><code>LOG_LEVEL</code></td><td>No</td><td>info</td><td>uvicorn log level</td></tr>
+  <tr><td><code>HTTPS_ONLY</code></td><td>No</td><td>false</td><td>Set <code>true</code> behind an HTTPS reverse proxy. Marks session cookies <code>Secure</code> and enables trusted proxy header processing. The NixOS module always sets this to <code>true</code>.</td></tr>
+  <tr><td><code>TRUSTED_PROXY_IPS</code></td><td>No</td><td>*</td><td>Comma-separated IPs (or <code>*</code>) allowed to set <code>X-Forwarded-*</code> headers. Default <code>*</code> is safe for LAN deployments behind a physical firewall.</td></tr>
 </table>
+
+<h2>NixOS Module</h2>
+<p>The module is exported as <code>nixosModules.default</code>. Add it to your host
+flake's <code>modules</code> list, then configure the service separately:</p>
+<pre># flake.nix
+inputs.ytdlfin.url = "github:genebean/ytdlfin";
+
+nixosConfigurations.yourhost = nixpkgs.lib.nixosSystem {
+  modules = [
+    ytdlfin.nixosModules.default   # brings the module into scope; enable = false until you set it
+    ./hosts/yourhost/configuration.nix
+  ];
+};</pre>
+<pre># configuration.nix (or a dedicated service file)
+services.ytdlfin = {
+  enable = true;
+  user  = config.services.jellyfin.user;   # share Jellyfin's identity for library writes
+  group = config.services.jellyfin.group;
+  stagingDir = "/orico/jellyfin/.ytdlfin-staging";
+  environmentFile = config.sops.secrets.ytdlfin-env.path;
+  settings = {
+    oidcIssuerUrl   = "https://id.example.com";
+    oidcRedirectUri = "https://ytdlfin.example.com/auth/callback";
+    oidcAdminGroup  = "ytdlfin-admins";
+    oidcUserGroup   = "ytdlfin-users";
+    mediaDirectories = [ "/orico/jellyfin/data" ];
+  };
+};</pre>
 
 <h2>NixOS Module Options</h2>
 <table>
@@ -229,14 +292,14 @@ is needed — group membership is resolved once at login and stored in the sessi
   <tr><td><code>services.ytdlfin.stagingDir</code></td><td>/var/lib/ytdlfin/staging</td><td>Override to same FS as Jellyfin library</td></tr>
   <tr><td><code>services.ytdlfin.user</code></td><td>ytdlfin</td><td>Set to jellyfin user to share library access</td></tr>
   <tr><td><code>services.ytdlfin.group</code></td><td>ytdlfin</td><td>Set to jellyfin group to share library access</td></tr>
-  <tr><td><code>services.ytdlfin.environmentFile</code></td><td>required</td><td>Path to secrets file (SECRET_KEY, OIDC_CLIENT_SECRET)</td></tr>
+  <tr><td><code>services.ytdlfin.environmentFile</code></td><td>required</td><td>Path to secrets file (SECRET_KEY, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET)</td></tr>
   <tr><td><code>services.ytdlfin.settings.oidcIssuerUrl</code></td><td>required</td><td>PocketID base URL</td></tr>
-  <tr><td><code>services.ytdlfin.settings.oidcClientId</code></td><td>required</td><td>OIDC client ID</td></tr>
   <tr><td><code>services.ytdlfin.settings.oidcRedirectUri</code></td><td>required</td><td>Full callback URL</td></tr>
   <tr><td><code>services.ytdlfin.settings.oidcAdminGroup</code></td><td>required</td><td>PocketID group name for admin access</td></tr>
   <tr><td><code>services.ytdlfin.settings.oidcUserGroup</code></td><td>required</td><td>PocketID group name for regular user access</td></tr>
   <tr><td><code>services.ytdlfin.settings.mediaDirectories</code></td><td>[]</td><td>Jellyfin library paths needing write access</td></tr>
   <tr><td><code>services.ytdlfin.settings.logLevel</code></td><td>info</td><td>uvicorn log level</td></tr>
+  <tr><td><code>services.ytdlfin.settings.trustedProxyIps</code></td><td>*</td><td>IPs allowed to set <code>X-Forwarded-*</code> headers. <code>*</code> trusts all upstream proxies (safe for LAN behind a firewall). Set to <code>127.0.0.1</code> if nginx is on the same host.</td></tr>
 </table>
 
 <h2>Decision Log</h2>
@@ -272,6 +335,14 @@ is needed — group membership is resolved once at login and stored in the sessi
   <dt>CDN with SRI hashes (Pico CSS, HTMX)</dt>
   <dd>No build step. Both resources are pinned to exact versions with SHA-384 integrity
   hashes computed from the actual CDN content. Update the hashes whenever versions change.</dd>
+
+  <dt>Reverse proxy headers trusted from all IPs by default</dt>
+  <dd>The primary deployment target is a LAN environment where a physical firewall
+  controls perimeter access and only port 443 is exposed externally. Trusting
+  <code>X-Forwarded-*</code> from all upstream IPs (<code>TRUSTED_PROXY_IPS=*</code>)
+  is safe in this context and avoids per-deployment IP configuration. Operators who
+  need stricter trust (e.g. nginx on the same host) can set
+  <code>services.ytdlfin.settings.trustedProxyIps = "127.0.0.1"</code>.</dd>
 </dl>
 
 </body>

@@ -101,7 +101,7 @@
               environmentFile = "/dev/null";
               settings = {
                 oidcIssuerUrl = "https://id.example.com";
-                oidcClientId = "ytdlfin";
+                # oidcClientId is not a module option — it comes from environmentFile
                 oidcRedirectUri = "https://ytdlfin.example.com/auth/callback";
                 oidcAdminGroup = "ytdlfin-admins";
                 oidcUserGroup = "ytdlfin-users";

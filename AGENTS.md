@@ -129,6 +129,8 @@ All config via env vars. The NixOS module sets non-secret vars and loads secrets
 | `USER_GROUP` | Yes | PocketID group name for regular user access |
 | `PORT` | No | Default: 8000 |
 | `LOG_LEVEL` | No | Default: info |
+| `HTTPS_ONLY` | No | Set `true` behind an HTTPS proxy; marks cookies Secure and trusts X-Forwarded-Proto |
+| `TRUSTED_PROXY_IPS` | No | Default: `*` (trust all). IPs allowed to set X-Forwarded-* headers. Set to `127.0.0.1` for same-host nginx. |
 
 ---
 
@@ -144,6 +146,30 @@ Notable options:
   that systemd's `ReadWritePaths` must include.
 - `services.ytdlfin.settings.oidcAdminGroup`: PocketID group name for admin access.
 - `services.ytdlfin.settings.oidcUserGroup`: PocketID group name for regular user access.
+
+---
+
+## Reverse proxy (nginx)
+
+ytdlfin is designed to run behind nginx with TLS termination. Two things must be
+wired up correctly:
+
+**nginx** must forward the real scheme and client IP:
+```nginx
+proxy_set_header Host              $host;
+proxy_set_header X-Real-IP         $remote_addr;
+proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_pass http://127.0.0.1:8000;
+```
+
+**ytdlfin** needs `HTTPS_ONLY=true` in its environment (the NixOS module sets this
+automatically). This does two things:
+- Tells uvicorn to trust `X-Forwarded-Proto` from `127.0.0.1`, so `request.url.scheme`
+  returns `https` — required for authlib to build the correct OIDC redirect URI.
+- Marks session cookies `Secure` so browsers only send them over TLS.
+
+Leave `HTTPS_ONLY` unset (defaults to `false`) for local HTTP development.
 
 ---
 

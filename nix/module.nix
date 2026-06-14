@@ -10,7 +10,7 @@
 let
   cfg = config.services.ytdlfin;
   # Always use the package built from the same flake revision as the module.
-  package = self.packages.${pkgs.system}.default;
+  package = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
 in
 {
   options.services.ytdlfin = {
@@ -70,6 +70,7 @@ in
         Path to a file containing secrets as KEY=VALUE pairs (loaded by
         systemd as EnvironmentFile). Must include:
           SECRET_KEY=<32+ random chars for session signing>
+          OIDC_CLIENT_ID=<OIDC client ID from PocketID>
           OIDC_CLIENT_SECRET=<OIDC client secret from PocketID>
       '';
     };
@@ -78,11 +79,6 @@ in
       oidcIssuerUrl = lib.mkOption {
         type = lib.types.str;
         description = "PocketID base URL, e.g. https://id.example.com";
-      };
-
-      oidcClientId = lib.mkOption {
-        type = lib.types.str;
-        description = "OIDC client ID registered in PocketID.";
       };
 
       oidcRedirectUri = lib.mkOption {
@@ -130,6 +126,18 @@ in
         ];
         default = "info";
         description = "uvicorn log level.";
+      };
+
+      trustedProxyIps = lib.mkOption {
+        type = lib.types.str;
+        default = "*";
+        description = ''
+          Comma-separated list of upstream proxy IPs allowed to set
+          X-Forwarded-For and X-Forwarded-Proto headers, or "*" to trust all.
+          The default ("*") is safe for LAN deployments behind a physical
+          firewall. Set to "127.0.0.1" if nginx runs on the same host and
+          you want stricter trust.
+        '';
       };
     };
   };
@@ -186,11 +194,16 @@ in
         STAGING_DIR = cfg.stagingDir;
         PORT = toString cfg.port;
         OIDC_ISSUER_URL = cfg.settings.oidcIssuerUrl;
-        OIDC_CLIENT_ID = cfg.settings.oidcClientId;
+        # OIDC_CLIENT_ID comes from environmentFile — not set here.
         OIDC_REDIRECT_URI = cfg.settings.oidcRedirectUri;
         ADMIN_GROUP = cfg.settings.oidcAdminGroup;
         USER_GROUP = cfg.settings.oidcUserGroup;
         LOG_LEVEL = cfg.settings.logLevel;
+        # Always true when deployed via NixOS module — the service is expected
+        # to sit behind an HTTPS reverse proxy (e.g. nginx). Marks session
+        # cookies Secure and enables correct scheme detection via proxy headers.
+        HTTPS_ONLY = "true";
+        TRUSTED_PROXY_IPS = cfg.settings.trustedProxyIps;
       };
     };
   };
