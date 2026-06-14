@@ -74,10 +74,7 @@ async def lifespan(app: FastAPI):
     await recover_staging()
     await database.reset_interrupted_downloads(conn)
 
-    # Build the download queue and re-enqueue pending items in submission order.
     queue: asyncio.Queue[int] = asyncio.Queue()
-    for pending_id in await database.get_pending_ids(conn):
-        await queue.put(pending_id)
 
     app.state.db = conn
     app.state.queue = queue
@@ -213,7 +210,7 @@ def create_app() -> FastAPI:
         if quality != "best" and not re.match(r"^\d+p$", quality):
             quality = "1080p"
 
-        record = await database.create_download(
+        await database.create_download(
             conn,
             url=url,
             category=category,
@@ -222,9 +219,8 @@ def create_app() -> FastAPI:
             requested_by_email=user["email"],
             requested_by_name=user["name"],
         )
-        await request.app.state.queue.put(record["id"])
 
-        flash(request, "Download queued.", "success")
+        flash(request, "Added to queue. Click “Start downloads” when ready.", "success")
         return RedirectResponse(url="/", status_code=303)
 
     # ── HTMX partial: resolution picker ──────────────────────────────────────
@@ -258,12 +254,92 @@ def create_app() -> FastAPI:
 
     # ── HTMX partial: active queue ────────────────────────────────────────────
 
+    async def _queue_partial_response(request: Request, user: dict) -> HTMLResponse:
+        """Render the queue partial with all context it needs."""
+        conn = request.app.state.db
+        queue = await database.get_queue(conn)
+        categories = await database.list_categories(conn)
+        return templates.TemplateResponse(
+            "queue_partial.html",
+            {"request": request, "queue": queue, "user": user, "categories": categories},
+        )
+
     @app.get("/api/queue", response_class=HTMLResponse)
     async def api_queue(request: Request, user=Depends(get_current_user)):
         """Returns an HTML partial for the queue section (polled every 3s by HTMX)."""
-        queue = await database.get_queue(request.app.state.db)
+        return await _queue_partial_response(request, user)
+
+    @app.post("/api/queue/start", response_class=HTMLResponse)
+    async def api_queue_start(request: Request, user=Depends(get_current_user)):
+        """Enqueue all pending downloads so the worker starts processing them."""
+        conn = request.app.state.db
+        for pid in await database.get_pending_ids(conn):
+            await request.app.state.queue.put(pid)
+        return await _queue_partial_response(request, user)
+
+    @app.patch("/api/downloads/{download_id}", response_class=HTMLResponse)
+    async def api_update_download(
+        download_id: int,
+        request: Request,
+        user=Depends(get_current_user),
+    ):
+        """Change the category of a pending download (HTMX inline edit)."""
+        conn = request.app.state.db
+        record = await database.get_download(conn, download_id)
+        if not record:
+            raise HTTPException(404, "Download not found")
+        if record["status"] != "pending":
+            raise HTTPException(409, "Only pending downloads can be edited")
+        if not user["is_admin"] and record["requested_by_email"] != user["email"]:
+            raise HTTPException(403, "Not allowed")
+
+        form = await request.form()
+        try:
+            category_id = int(form.get("category_id", 0))
+        except ValueError:
+            raise HTTPException(400, "Invalid category_id")
+
+        category = await database.get_category(conn, category_id)
+        if not category:
+            raise HTTPException(400, "Category not found")
+
+        updated = await database.update_download_category(conn, download_id, category)
+        categories = await database.list_categories(conn)
         return templates.TemplateResponse(
-            "queue_partial.html", {"request": request, "queue": queue, "user": user}
+            "partials/queue_row.html",
+            {"request": request, "item": updated, "user": user, "categories": categories},
+        )
+
+    @app.get("/partials/queue/{download_id}", response_class=HTMLResponse)
+    async def partial_queue_row(
+        download_id: int, request: Request, user=Depends(get_current_user)
+    ):
+        """Normal queue row (used to cancel an in-progress edit)."""
+        conn = request.app.state.db
+        record = await database.get_download(conn, download_id)
+        if not record:
+            raise HTTPException(404)
+        categories = await database.list_categories(conn)
+        return templates.TemplateResponse(
+            "partials/queue_row.html",
+            {"request": request, "item": record, "user": user, "categories": categories},
+        )
+
+    @app.get("/partials/queue/{download_id}/edit", response_class=HTMLResponse)
+    async def partial_queue_row_edit(
+        download_id: int, request: Request, user=Depends(get_current_user)
+    ):
+        """Edit-mode queue row with category dropdown."""
+        conn = request.app.state.db
+        record = await database.get_download(conn, download_id)
+        if not record:
+            raise HTTPException(404)
+        if record["status"] != "pending":
+            raise HTTPException(409, "Only pending downloads can be edited")
+        categories = await database.list_categories(conn)
+        return templates.TemplateResponse(
+            "partials/queue_row_edit.html",
+            {"request": request, "item": record, "user": user, "categories": categories},
         )
 
     # ── JSON API: downloads ───────────────────────────────────────────────────
@@ -292,7 +368,6 @@ def create_app() -> FastAPI:
             requested_by_email=user["email"],
             requested_by_name=user["name"],
         )
-        await request.app.state.queue.put(record["id"])
         return record
 
     @app.get("/api/downloads")

@@ -305,6 +305,20 @@ async def reset_interrupted_downloads(db: aiosqlite.Connection) -> None:
     await db.commit()
 
 
+async def update_download_category(
+    db: aiosqlite.Connection, download_id: int, category: dict
+) -> dict | None:
+    """Change the category of a pending download. Returns None if not found or not pending."""
+    async with db.execute(
+        """UPDATE downloads SET category_id=?, category_name=?, category_path=?
+           WHERE id=? AND status='pending' RETURNING *""",
+        (category["id"], category["name"], category["path"], download_id),
+    ) as cur:
+        row = await cur.fetchone()
+    await db.commit()
+    return _row(row)
+
+
 async def cancel_download(db: aiosqlite.Connection, download_id: int) -> bool:
     """Delete a pending download record. Returns False if not found or not pending."""
     async with db.execute(

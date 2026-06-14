@@ -1,4 +1,14 @@
-{# Returned by /api/queue for HTMX polling. Also included inline on the main page. #}
+{# Rendered by /api/queue (HTMX poll) and included inline on the main page. #}
+{% set pending_items = queue | selectattr("status", "equalto", "pending") | list %}
+{% if pending_items %}
+<div style="margin-bottom:0.75rem">
+  <button
+    hx-post="/api/queue/start"
+    hx-target="#queue-section"
+    hx-swap="innerHTML"
+  >Start {{ pending_items | length }} download{{ 's' if pending_items | length != 1 else '' }}</button>
+</div>
+{% endif %}
 {% if queue %}
 <div class="overflow-x">
   <table>
@@ -14,33 +24,7 @@
     </thead>
     <tbody>
       {% for item in queue %}
-      <tr class="queue-item" id="queue-row-{{ item.id }}">
-        <td class="wrap">
-          {% if item.title %}
-            {{ item.title }}{% if item.video_id %} [{{ item.video_id }}]{% endif %}
-          {% else %}
-            <small>{{ item.url | truncate(60) }}</small>
-          {% endif %}
-        </td>
-        <td>{{ item.category_name }}</td>
-        <td>{{ item.quality }}</td>
-        <td>{{ item.requested_by_name }}</td>
-        <td>
-          <span class="badge badge-{{ item.status }}">{{ item.status }}</span>
-        </td>
-        <td>
-          {% if item.status == 'pending' %}
-          <button
-            class="outline secondary"
-            style="padding:0.2em 0.6em;font-size:0.85em"
-            hx-delete="/api/downloads/{{ item.id }}"
-            hx-target="#queue-row-{{ item.id }}"
-            hx-swap="outerHTML"
-            hx-confirm="Cancel this download?"
-          >✕</button>
-          {% endif %}
-        </td>
-      </tr>
+      {% include "partials/queue_row.html" %}
       {% endfor %}
     </tbody>
   </table>
