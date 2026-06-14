@@ -42,9 +42,14 @@ All runtimes and tools come from `nix develop`. Never assume Python, ffmpeg, or
 yt-dlp exist on the host PATH outside the shell.
 
 ```
-nix develop          # enters the dev shell
-uvicorn ytdlfin.main:app --reload   # run locally inside the shell
+nix develop                          # enters the dev shell
+pre-commit install                   # one-time setup after entering shell for the first time
+uvicorn ytdlfin.main:app --reload    # run locally inside the shell
 ```
+
+The dev shell also provides `pre-commit`, `deadnix`, and `nixfmt-tree`.
+Run `nix fmt` to reformat all Nix files — the `formatter` output is wired to
+`nixfmt-tree`, so that is the correct command (not `nixfmt` directly).
 
 ---
 
@@ -163,6 +168,7 @@ architecture, data model, API, or module options.
 
 ## Pre-push checklist
 
-1. `nix build` — if `flake.nix` or `pyproject.toml` changed
-2. Manual smoke test in `nix develop` — start uvicorn, verify the login redirect works
-3. Update `docs/reference/spec.html` if architecture or API changed
+1. `pre-commit run --all-files` — catches formatting and dead-code issues fast
+2. `nix build` — if `flake.nix` or `pyproject.toml` changed
+3. Manual smoke test in `nix develop` — start uvicorn, verify the login redirect works
+4. Update `docs/reference/spec.html` if architecture or API changed

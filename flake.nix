@@ -3,27 +3,33 @@
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
-  outputs = { self, nixpkgs }:
+  outputs =
+    { self, nixpkgs }:
     let
       # Support both common Linux architectures.
-      supportedSystems = [ "x86_64-linux" "aarch64-linux" ];
+      supportedSystems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
       pkgsFor = system: nixpkgs.legacyPackages.${system};
 
       # Python dependencies shared between the package and the dev shell.
-      pythonDeps = ps: with ps; [
-        fastapi
-        uvicorn
-        aiosqlite
-        jinja2
-        authlib
-        httpx
-        itsdangerous
-        python-multipart
-        yt-dlp
-      ];
+      pythonDeps =
+        ps: with ps; [
+          fastapi
+          uvicorn
+          aiosqlite
+          jinja2
+          authlib
+          httpx
+          itsdangerous
+          python-multipart
+          yt-dlp
+        ];
 
-      mkPackage = pkgs:
+      mkPackage =
+        pkgs:
         pkgs.python3.pkgs.buildPythonApplication {
           pname = "ytdlfin";
           version = "0.1.0";
@@ -44,7 +50,8 @@
           };
         };
 
-      mkDevShell = pkgs:
+      mkDevShell =
+        pkgs:
         pkgs.mkShell {
           packages = [
             # Full Python environment with all runtime dependencies.
@@ -52,6 +59,10 @@
             # System tools available to yt-dlp at runtime.
             pkgs.ffmpeg
             pkgs.yt-dlp
+            # Developer tooling — pre-commit and the hooks it runs locally.
+            pkgs.pre-commit
+            pkgs.deadnix
+            pkgs.nixfmt-tree
           ];
 
           shellHook = ''
@@ -67,11 +78,44 @@
         default = mkPackage (pkgsFor system);
       });
 
+      # `nix fmt` — format all Nix files in the tree using nixfmt
+      formatter = forAllSystems (system: (pkgsFor system).nixfmt-tree);
+
       devShells = forAllSystems (system: {
         default = mkDevShell (pkgsFor system);
       });
 
       # Import this module in your NixOS host flake to deploy ytdlfin.
       nixosModules.default = import ./nix/module.nix { inherit self; };
+
+      # Minimal NixOS configuration used by CI to catch module evaluation errors
+      # (missing options, type mismatches, callPackage failures) without deploying.
+      nixosConfigurations.test = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          self.nixosModules.default
+          {
+            services.ytdlfin = {
+              enable = true;
+              # /dev/null is a valid path for evaluation; secrets are not read during build.
+              environmentFile = "/dev/null";
+              settings = {
+                oidcIssuerUrl = "https://id.example.com";
+                oidcClientId = "ytdlfin";
+                oidcRedirectUri = "https://ytdlfin.example.com/auth/callback";
+                oidcAdminGroup = "ytdlfin-admins";
+                oidcUserGroup = "ytdlfin-users";
+              };
+            };
+            # Minimal stubs required for NixOS evaluation — not a bootable system.
+            fileSystems."/" = {
+              device = "none";
+              fsType = "tmpfs";
+            };
+            boot.loader.grub.enable = false;
+            system.stateVersion = "26.05";
+          }
+        ];
+      };
     };
 }

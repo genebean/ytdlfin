@@ -1,6 +1,11 @@
 { self }:
 
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.services.ytdlfin;
@@ -87,7 +92,7 @@ in
 
       mediaDirectories = lib.mkOption {
         type = lib.types.listOf lib.types.path;
-        default = [];
+        default = [ ];
         description = ''
           Filesystem paths that ytdlfin needs write access to (i.e. your
           Jellyfin media library root(s)). These are added to systemd's
@@ -117,7 +122,12 @@ in
       };
 
       logLevel = lib.mkOption {
-        type = lib.types.enum [ "debug" "info" "warning" "error" ];
+        type = lib.types.enum [
+          "debug"
+          "info"
+          "warning"
+          "error"
+        ];
         default = "info";
         description = "uvicorn log level.";
       };
@@ -135,7 +145,7 @@ in
       description = "ytdlfin service user";
     };
 
-    users.groups.${cfg.group} = lib.mkIf (cfg.group == "ytdlfin") {};
+    users.groups.${cfg.group} = lib.mkIf (cfg.group == "ytdlfin") { };
 
     systemd.tmpfiles.rules = [
       # Create dataDir and stagingDir with correct ownership before the service starts.
@@ -163,20 +173,24 @@ in
         ProtectSystem = "strict";
         ProtectHome = true;
         # dataDir and stagingDir are always writable; add media library paths too.
-        ReadWritePaths = [ cfg.dataDir cfg.stagingDir ] ++ cfg.settings.mediaDirectories;
+        ReadWritePaths = [
+          cfg.dataDir
+          cfg.stagingDir
+        ]
+        ++ cfg.settings.mediaDirectories;
         PrivateTmp = true;
       };
 
       environment = {
-        DATA_DIR         = cfg.dataDir;
-        STAGING_DIR      = cfg.stagingDir;
-        PORT             = toString cfg.port;
-        OIDC_ISSUER_URL  = cfg.settings.oidcIssuerUrl;
-        OIDC_CLIENT_ID   = cfg.settings.oidcClientId;
+        DATA_DIR = cfg.dataDir;
+        STAGING_DIR = cfg.stagingDir;
+        PORT = toString cfg.port;
+        OIDC_ISSUER_URL = cfg.settings.oidcIssuerUrl;
+        OIDC_CLIENT_ID = cfg.settings.oidcClientId;
         OIDC_REDIRECT_URI = cfg.settings.oidcRedirectUri;
-        ADMIN_GROUP      = cfg.settings.oidcAdminGroup;
-        USER_GROUP       = cfg.settings.oidcUserGroup;
-        LOG_LEVEL        = cfg.settings.logLevel;
+        ADMIN_GROUP = cfg.settings.oidcAdminGroup;
+        USER_GROUP = cfg.settings.oidcUserGroup;
+        LOG_LEVEL = cfg.settings.logLevel;
       };
     };
   };
