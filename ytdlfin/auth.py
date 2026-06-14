@@ -32,7 +32,9 @@ oauth.register(
     client_id=OIDC_CLIENT_ID,
     client_secret=OIDC_CLIENT_SECRET,
     # "groups" scope makes PocketID include group membership in the userinfo response.
-    client_kwargs={"scope": "openid profile email groups"},
+    # code_challenge_method forces PKCE even when the discovery doc doesn't
+    # advertise it — PocketID requires PKCE but omits it from the discovery doc.
+    client_kwargs={"scope": "openid profile email groups", "code_challenge_method": "S256"},
 )
 
 # ── Custom exceptions (caught by exception handlers in main.py) ───────────────
