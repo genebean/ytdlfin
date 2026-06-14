@@ -5,8 +5,8 @@
 <h2>Download history</h2>
 
 {# Status filter #}
-<form method="get" action="/history" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center">
-  <label for="status_filter" style="margin:0;white-space:nowrap">Filter by status:</label>
+<form method="get" action="/history" style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
+  <label for="status_filter" style="margin:0">Filter by status:</label>
   <select id="status_filter" name="status" onchange="this.form.submit()" style="max-width:12rem">
     <option value="" {% if not status_filter %}selected{% endif %}>All</option>
     <option value="pending"     {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
