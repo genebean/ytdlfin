@@ -1,0 +1,50 @@
+{# Returned by /api/queue for HTMX polling. Also included inline on the main page. #}
+{% if queue %}
+<div class="overflow-x">
+  <table>
+    <thead>
+      <tr>
+        <th class="wrap">Title / URL</th>
+        <th>Category</th>
+        <th>Quality</th>
+        <th>Requested by</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in queue %}
+      <tr class="queue-item" id="queue-row-{{ item.id }}">
+        <td class="wrap">
+          {% if item.title %}
+            {{ item.title }}{% if item.video_id %} [{{ item.video_id }}]{% endif %}
+          {% else %}
+            <small>{{ item.url | truncate(60) }}</small>
+          {% endif %}
+        </td>
+        <td>{{ item.category_name }}</td>
+        <td>{{ item.quality }}</td>
+        <td>{{ item.requested_by_name }}</td>
+        <td>
+          <span class="badge badge-{{ item.status }}">{{ item.status }}</span>
+        </td>
+        <td>
+          {% if item.status == 'pending' %}
+          <button
+            class="outline secondary"
+            style="padding:0.2em 0.6em;font-size:0.85em"
+            hx-delete="/api/downloads/{{ item.id }}"
+            hx-target="#queue-row-{{ item.id }}"
+            hx-swap="outerHTML"
+            hx-confirm="Cancel this download?"
+          >✕</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="secondary"><em>No active downloads.</em></p>
+{% endif %}

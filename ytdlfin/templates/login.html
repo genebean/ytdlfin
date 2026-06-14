@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ytdlfin — Login</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css"
+    integrity="sha384-L1dWfspMTHU/ApYnFiMz2QID/PlP1xCW9visvBdbEkOLkSSWsP6ZJWhPw6apiXxU"
+    crossorigin="anonymous"
+  />
+</head>
+<body>
+  <main class="container" style="max-width:28rem;margin-top:6rem">
+    <article>
+      <h2 style="text-align:center">ytdlfin</h2>
+      <p style="text-align:center">Sign in with your PocketID account to continue.</p>
+      <a href="/auth/login" role="button" style="width:100%;text-align:center;display:block">
+        Sign in with PocketID
+      </a>
+      {% if error %}
+      <p style="color:red;margin-top:1rem">{{ error }}</p>
+      {% endif %}
+    </article>
+  </main>
+</body>
+</html>

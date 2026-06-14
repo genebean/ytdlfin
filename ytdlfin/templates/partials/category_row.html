@@ -1,0 +1,41 @@
+{# Single category table row — also returned by HTMX after save/cancel/delete-error. #}
+{% if error %}<tr><td colspan="4" style="color:red"><small>{{ error }}</small></td></tr>{% endif %}
+<tr id="cat-row-{{ cat.id }}">
+  <td>{{ cat.name }}</td>
+  <td><code>{{ cat.path }}</code></td>
+  <td>{{ cat.description or '—' }}</td>
+  <td style="white-space:nowrap">
+    <button
+      class="outline"
+      style="padding:0.2em 0.6em;font-size:0.85em;margin-right:0.3em"
+      hx-get="/partials/categories/{{ cat.id }}/edit"
+      hx-target="#cat-row-{{ cat.id }}"
+      hx-swap="outerHTML"
+    >Edit</button>
+
+    <button
+      class="outline secondary"
+      style="padding:0.2em 0.6em;font-size:0.85em"
+      onclick="document.getElementById('del-dialog-{{ cat.id }}').showModal()"
+    >Delete</button>
+
+    <dialog id="del-dialog-{{ cat.id }}">
+      <article>
+        <h3>Delete category?</h3>
+        <p>Delete <strong>{{ cat.name }}</strong>? This cannot be undone.</p>
+        <footer>
+          <button
+            class="secondary outline"
+            onclick="document.getElementById('del-dialog-{{ cat.id }}').close()"
+          >Cancel</button>
+          <button
+            hx-delete="/api/categories/{{ cat.id }}"
+            hx-target="#cat-row-{{ cat.id }}"
+            hx-swap="outerHTML"
+            hx-on:htmx:after-request="document.getElementById('del-dialog-{{ cat.id }}') && document.getElementById('del-dialog-{{ cat.id }}').close()"
+          >Delete</button>
+        </footer>
+      </article>
+    </dialog>
+  </td>
+</tr>
