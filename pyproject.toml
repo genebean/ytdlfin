@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ytdlfin"
+version = "0.1.0"
+description = "Self-hosted video downloader for Jellyfin"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "aiosqlite",
+    "jinja2",
+    "authlib",
+    "httpx",
+    "itsdangerous",
+    "python-multipart",
+    "yt-dlp",
+]
+
+[project.scripts]
+ytdlfin = "ytdlfin.main:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ytdlfin"]

@@ -1,0 +1,38 @@
+<tr class="queue-item" id="queue-row-{{ item.id }}">
+  <td class="wrap">
+    {% if item.title %}
+      {{ item.title }}{% if item.video_id %} [{{ item.video_id }}]{% endif %}
+    {% else %}
+      <small>{{ item.url | truncate(60) }}</small>
+    {% endif %}
+  </td>
+  <td>
+    <select id="cat-edit-{{ item.id }}" name="category_id" style="margin:0;padding:0.25em 0.4em;font-size:0.9em">
+      {% for cat in categories %}
+      <option value="{{ cat.id }}"{% if cat.id == item.category_id %} selected{% endif %}>{{ cat.name }}</option>
+      {% endfor %}
+    </select>
+  </td>
+  <td>{{ item.quality }}</td>
+  <td>{{ item.requested_by_name }}</td>
+  <td>
+    <span class="badge badge-{{ item.status }}">{{ item.status }}</span>
+  </td>
+  <td style="white-space:nowrap">
+    <button
+      class="outline"
+      style="padding:0.2em 0.6em;font-size:0.85em;margin-right:0.25em"
+      hx-patch="/api/downloads/{{ item.id }}"
+      hx-target="#queue-row-{{ item.id }}"
+      hx-swap="outerHTML"
+      hx-include="#cat-edit-{{ item.id }}"
+    >Save</button>
+    <button
+      class="outline secondary"
+      style="padding:0.2em 0.6em;font-size:0.85em"
+      hx-get="/partials/queue/{{ item.id }}"
+      hx-target="#queue-row-{{ item.id }}"
+      hx-swap="outerHTML"
+    >Cancel</button>
+  </td>
+</tr>

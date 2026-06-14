@@ -1,0 +1,26 @@
+{# Inline edit form replacing a category row. Submitted via hx-put. #}
+<tr id="cat-row-{{ cat.id }}">
+  <form
+    hx-put="/api/categories/{{ cat.id }}"
+    hx-target="#cat-row-{{ cat.id }}"
+    hx-swap="outerHTML"
+  >
+    <td><input type="text" name="name" value="{{ cat.name }}" required style="margin:0" /></td>
+    <td>
+      <input type="text" name="path" value="{{ cat.path }}" required style="margin:0{% if error %};border-color:red{% endif %}" />
+      {% if error %}<br /><small style="color:red">{{ error }}</small>{% endif %}
+    </td>
+    <td><input type="text" name="description" value="{{ cat.description or '' }}" style="margin:0" /></td>
+    <td style="white-space:nowrap">
+      <button type="submit" style="padding:0.2em 0.6em;font-size:0.85em;margin-right:0.3em">Save</button>
+      <button
+        type="button"
+        class="outline secondary"
+        style="padding:0.2em 0.6em;font-size:0.85em"
+        hx-get="/partials/categories/{{ cat.id }}"
+        hx-target="#cat-row-{{ cat.id }}"
+        hx-swap="outerHTML"
+      >Cancel</button>
+    </td>
+  </form>
+</tr>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ytdlfin — Documentation</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 56rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }
+    h1 { border-bottom: 2px solid #333; padding-bottom: 0.3em; }
+    a { color: #0969da; }
+    nav ul { list-style: none; padding: 0; display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    nav ul li a { text-decoration: none; font-weight: 600; }
+    .card { border: 1px solid #d1d5da; border-radius: 6px; padding: 1rem 1.25rem; margin: 0.75rem 0; }
+    .card h3 { margin: 0 0 0.3rem; }
+    .card p { margin: 0; color: #555; }
+  </style>
+</head>
+<body>
+
+<h1>ytdlfin</h1>
+<p>Self-hosted video downloader for Jellyfin. Paste a URL, pick a category, and the file
+lands in the right Jellyfin directory with NFO metadata and poster art — no manual
+file management required.</p>
+
+<nav>
+  <ul>
+    <li><a href="index.html">Home</a></li>
+    <li><a href="reference/spec.html">Spec</a></li>
+  </ul>
+</nav>
+
+<hr />
+
+<h2>User guide</h2>
+
+<div class="card">
+  <h3>Submitting a download</h3>
+  <p>Paste any yt-dlp-supported URL into the form on the main page. Choose a category
+  (set up by an admin), optionally enter a custom title, and select a quality. Hit
+  <strong>Queue download</strong>. The download appears in the active queue below the form
+  and refreshes automatically every few seconds.</p>
+</div>
+
+<div class="card">
+  <h3>Quality options</h3>
+  <p><strong>1080p</strong> (default) — downloads the best available video up to 1080p and
+  merges it into MP4. <strong>Best available</strong> — downloads the highest quality stream
+  regardless of resolution (4K, HDR, etc.).</p>
+</div>
+
+<div class="card">
+  <h3>Custom title</h3>
+  <p>Leave blank to use the video's own title. If filled in, the custom title is used for
+  the folder name, MP4 filename, and NFO <code>&lt;title&gt;</code>. The original video
+  title is always preserved in <code>&lt;originaltitle&gt;</code> in the NFO.</p>
+</div>
+
+<div class="card">
+  <h3>History</h3>
+  <p>The <a href="#">History</a> page shows all your past downloads. Admins see everyone's
+  downloads. Filter by status (pending, downloading, done, failed, skipped).</p>
+</div>
+
+<div class="card">
+  <h3>Cancelling a download</h3>
+  <p>While a download is still <em>pending</em> (not yet started), click the ✕ button in
+  the queue. Once a download is in progress, it cannot be cancelled from the UI.</p>
+</div>
+
+<hr />
+
+<h2>Admin guide</h2>
+
+<div class="card">
+  <h3>Managing categories</h3>
+  <p>Categories map a friendly name to a filesystem path inside the Jellyfin library.
+  Visit <strong>Admin → Category management</strong> to add, edit, or delete categories.
+  The path must exist and be writable by the ytdlfin service user before you can save it.</p>
+</div>
+
+<div class="card">
+  <h3>Admin access</h3>
+  <p>Admin status is determined at login by matching your PocketID email address against
+  the <code>ADMIN_EMAILS</code> environment variable (comma-separated list, set in the NixOS
+  module or environment file).</p>
+</div>
+
+<hr />
+
+<h2>Reference</h2>
+<ul>
+  <li><a href="reference/spec.html">Full implementation spec</a> — architecture, data model,
+  API endpoints, NixOS module options, and decision log.</li>
+</ul>
+
+</body>
+</html>

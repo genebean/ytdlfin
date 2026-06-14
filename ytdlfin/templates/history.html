@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}ytdlfin — History{% endblock %}
+
+{% block content %}
+<h2>Download history</h2>
+
+{# Status filter #}
+<form method="get" action="/history" style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
+  <label for="status_filter" style="margin:0">Filter by status:</label>
+  <select id="status_filter" name="status" onchange="this.form.submit()" style="max-width:12rem">
+    <option value="" {% if not status_filter %}selected{% endif %}>All</option>
+    <option value="pending"     {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+    <option value="downloading" {% if status_filter == 'downloading' %}selected{% endif %}>Downloading</option>
+    <option value="done"        {% if status_filter == 'done' %}selected{% endif %}>Done</option>
+    <option value="failed"      {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+    <option value="skipped"     {% if status_filter == 'skipped' %}selected{% endif %}>Skipped</option>
+  </select>
+</form>
+
+{% if downloads %}
+<div class="overflow-x">
+  <table>
+    <thead>
+      <tr>
+        <th class="wrap">Title</th>
+        <th>Category</th>
+        <th>Quality</th>
+        <th>Requested by</th>
+        <th>Requested</th>
+        <th>Completed</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dl in downloads %}
+      <tr>
+        <td class="wrap">
+          {% if dl.title %}
+            {% if dl.status == 'done' and dl.final_path %}
+              <span data-tooltip="{{ dl.final_path }}" data-placement="bottom">
+                {{ dl.title }}{% if dl.video_id %} [{{ dl.video_id }}]{% endif %}
+              </span>
+            {% else %}
+              {{ dl.title }}{% if dl.video_id %} [{{ dl.video_id }}]{% endif %}
+            {% endif %}
+          {% else %}
+            <small>{{ dl.url | truncate(60) }}</small>
+          {% endif %}
+          {% if dl.status == 'failed' and dl.error_msg %}
+            <br /><small style="color:var(--pico-del-color)" data-tooltip="{{ dl.error_msg }}" data-placement="bottom">⚠ error (hover)</small>
+          {% endif %}
+          {% if dl.status == 'skipped' and dl.skipped_reason %}
+            <br /><small>{{ dl.skipped_reason }}</small>
+          {% endif %}
+        </td>
+        <td>{{ dl.category_name }}</td>
+        <td>{{ dl.quality }}</td>
+        <td>{{ dl.requested_by_name }}</td>
+        <td><small>{{ dl.requested_at[:16] if dl.requested_at else '—' }}</small></td>
+        <td><small>{{ dl.completed_at[:16] if dl.completed_at else '—' }}</small></td>
+        <td><span class="badge badge-{{ dl.status }}">{{ dl.status }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# Pagination #}
+{% if pages > 1 %}
+<nav style="display:flex;justify-content:center;gap:0.5rem;align-items:center;margin-top:1rem">
+  {% if page > 1 %}
+  <a href="/history?page={{ page - 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}" role="button" class="outline secondary">← Prev</a>
+  {% endif %}
+  <small>Page {{ page }} of {{ pages }} ({{ total }} total)</small>
+  {% if page < pages %}
+  <a href="/history?page={{ page + 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}" role="button" class="outline secondary">Next →</a>
+  {% endif %}
+</nav>
+{% else %}
+<small>{{ total }} record{{ 's' if total != 1 else '' }} total</small>
+{% endif %}
+
+{% else %}
+<p><em>No downloads yet{% if status_filter %} with status "{{ status_filter }}"{% endif %}.</em></p>
+{% endif %}
+{% endblock %}

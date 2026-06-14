@@ -1,0 +1,34 @@
+{# Rendered by /api/queue (HTMX poll) and included inline on the main page. #}
+{% set pending_items = queue | selectattr("status", "equalto", "pending") | list %}
+{% if pending_items %}
+<div style="margin-bottom:0.75rem">
+  <button
+    hx-post="/api/queue/start"
+    hx-target="#queue-section"
+    hx-swap="innerHTML"
+  >Start {{ pending_items | length }} download{{ 's' if pending_items | length != 1 else '' }}</button>
+</div>
+{% endif %}
+{% if queue %}
+<div class="overflow-x">
+  <table>
+    <thead>
+      <tr>
+        <th class="wrap">Title / URL</th>
+        <th>Category</th>
+        <th>Quality</th>
+        <th>Requested by</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in queue %}
+      {% include "partials/queue_row.html" %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="secondary"><em>No active downloads.</em></p>
+{% endif %}

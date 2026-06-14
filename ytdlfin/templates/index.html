@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}ytdlfin — Download{% endblock %}
+
+{% block content %}
+<h2>Download a video</h2>
+
+<form action="/downloads" method="post">
+  <label for="url">Video URL</label>
+  <input
+    type="url"
+    id="url"
+    name="url"
+    placeholder="https://www.youtube.com/watch?v=…"
+    required
+    autofocus
+    hx-get="/api/resolutions"
+    hx-trigger="blur"
+    hx-target="#quality-wrapper"
+    hx-swap="innerHTML"
+    hx-indicator="#quality-loading"
+    hx-include="this"
+  />
+
+  <label for="custom_title">Custom title <small>(optional — leave blank to use the video's title)</small></label>
+  <input
+    type="text"
+    id="custom_title"
+    name="custom_title"
+    placeholder="Leave blank to use video's title"
+  />
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:1rem;align-items:end">
+    <div>
+      <label for="category_id">Category</label>
+      <select id="category_id" name="category_id" required>
+        {% if categories %}
+          {% for cat in categories %}
+          <option value="{{ cat.id }}">{{ cat.name }}</option>
+          {% endfor %}
+        {% else %}
+          <option disabled value="">No categories — ask an admin to add one</option>
+        {% endif %}
+      </select>
+    </div>
+
+    <div>
+      <label for="quality">
+        Quality
+        <span id="quality-loading" class="htmx-indicator" style="font-size:0.8em;font-weight:normal;margin-left:0.4em">fetching…</span>
+      </label>
+      <div id="quality-wrapper">
+        {% include "partials/quality_select.html" %}
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" {% if not categories %}disabled{% endif %}>Queue download</button>
+</form>
+
+<hr />
+<h3>Active downloads</h3>
+
+<div
+  id="queue-section"
+  hx-get="/api/queue"
+  hx-trigger="every 3s"
+  hx-target="#queue-section"
+  hx-swap="innerHTML"
+>
+  {% include "queue_partial.html" %}
+</div>
+{% endblock %}

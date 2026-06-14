@@ -1,0 +1,7 @@
+{# Rendered as the tbody rows for the category table. Used on admin page and returned by HTMX. #}
+{% for cat in categories %}
+{% include "partials/category_row.html" %}
+{% endfor %}
+{% if not categories %}
+<tr><td colspan="4"><em>No categories yet.</em></td></tr>
+{% endif %}
