@@ -3,95 +3,170 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    (function () {
+      var stored = localStorage.getItem('ytdlfin-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', stored || (prefersDark ? 'dark' : 'light'));
+    })();
+  </script>
   <title>ytdlfin — Documentation</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css"
+    integrity="sha384-L1dWfspMTHU/ApYnFiMz2QID/PlP1xCW9visvBdbEkOLkSSWsP6ZJWhPw6apiXxU"
+    crossorigin="anonymous"
+  />
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 56rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }
-    h1 { border-bottom: 2px solid #333; padding-bottom: 0.3em; }
-    a { color: #0969da; }
-    nav ul { list-style: none; padding: 0; display: flex; gap: 1.5rem; flex-wrap: wrap; }
-    nav ul li a { text-decoration: none; font-weight: 600; }
-    .card { border: 1px solid #d1d5da; border-radius: 6px; padding: 1rem 1.25rem; margin: 0.75rem 0; }
-    .card h3 { margin: 0 0 0.3rem; }
-    .card p { margin: 0; color: #555; }
+    :root { --spacing: 1rem; }
+    nav .brand { font-weight: bold; font-size: 1.1rem; text-decoration: none; color: inherit; }
+    nav ul { list-style: none; }
+    nav a { text-decoration: none; }
+    .hero { padding: 2.5rem 0 1.5rem; border-bottom: 1px solid var(--pico-muted-border-color); margin-bottom: 2rem; }
+    .hero h1 { margin-bottom: 0.4rem; border: none; padding: 0; }
+    .hero p { color: var(--pico-muted-color); margin: 0; font-size: 1.05rem; }
+    .section-heading { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.75rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--pico-muted-border-color); }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    .card { border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); padding: 1rem 1.25rem; background: var(--pico-card-background-color); }
+    .card h3 { margin: 0 0 0.4rem; font-size: 1rem; }
+    .card p { margin: 0; color: var(--pico-muted-color); font-size: 0.93rem; line-height: 1.5; }
+    .card p code { font-size: 0.88rem; }
+    #theme-toggle { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0.2em 0.4em; line-height: 1; color: inherit; }
+    footer { margin-top: 3rem; padding: 1.5rem 0; border-top: 1px solid var(--pico-muted-border-color); text-align: center; font-size: 0.85em; color: var(--pico-muted-color); }
+    footer a { color: inherit; }
+    /* Hamburger */
+    .nav-hamburger { display: none; background: none; border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); padding: 0.25em 0.55em; font-size: 1.1rem; line-height: 1; cursor: pointer; color: inherit; margin: 0; }
+    @media (max-width: 640px) {
+      nav > ul:first-child { width: 100%; justify-content: space-between; }
+      .nav-hamburger { display: block; }
+      nav { position: relative; }
+      nav > ul.nav-links { display: none; position: absolute; top: calc(100% + 0.25rem); right: 0; z-index: 200; flex-direction: column; gap: 0.25rem; width: max-content; max-width: calc(100vw - 2rem); padding: 0.75rem 1rem; background: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+      nav > ul.nav-links.open { display: flex; }
+      nav > ul.nav-links li { list-style: none; }
+      .card-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
+  <header class="container">
+    <nav>
+      <ul>
+        <li><a href="index.html" class="brand">ytdlfin</a></li>
+        <li>
+          <button class="nav-hamburger" id="nav-toggle" aria-label="Menu" aria-expanded="false" onclick="toggleNav()">☰</button>
+        </li>
+      </ul>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="index.html">Docs home</a></li>
+        <li><a href="reference/spec.html">Spec</a></li>
+        <li><a href="https://github.com/genebean/ytdlfin" target="_blank" rel="noopener">GitHub</a></li>
+        <li><button id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark theme"></button></li>
+      </ul>
+    </nav>
+  </header>
 
-<h1>ytdlfin</h1>
-<p>Self-hosted video downloader for Jellyfin. Paste a URL, pick a category, and the file
-lands in the right Jellyfin directory with NFO metadata and poster art — no manual
-file management required.</p>
+  <main class="container">
+    <div class="hero">
+      <h1>ytdlfin</h1>
+      <p>Self-hosted video downloader for Jellyfin — paste a URL, pick a category, done.</p>
+    </div>
 
-<nav>
-  <ul>
-    <li><a href="index.html">Home</a></li>
-    <li><a href="reference/spec.html">Spec</a></li>
-  </ul>
-</nav>
+    <p>ytdlfin is a lightweight web app that downloads any yt-dlp-supported URL directly into your
+    Jellyfin library. It handles folder structure, NFO metadata, and poster art automatically.
+    Authentication is via PocketID (OIDC) with group-based access control.</p>
 
-<hr />
+    <h2 class="section-heading">User guide</h2>
+    <div class="card-grid">
+      <div class="card">
+        <h3>Submitting a download</h3>
+        <p>Paste any yt-dlp-supported URL into the form on the main page. Choose a category
+        (set up by an admin), optionally enter a custom title, and select a quality. Hit
+        <strong>Queue download</strong>. The download appears in the active queue and
+        refreshes automatically every few seconds.</p>
+      </div>
+      <div class="card">
+        <h3>Quality options</h3>
+        <p><strong>1080p</strong> (default) — downloads the best available video up to 1080p
+        and merges it into MP4. <strong>Best available</strong> — downloads the highest
+        quality stream regardless of resolution (4K, HDR, etc.).</p>
+      </div>
+      <div class="card">
+        <h3>Custom title</h3>
+        <p>Leave blank to use the video's own title. If filled in, the custom title is used
+        for the folder name, MP4 filename, and NFO <code>&lt;title&gt;</code>. The original
+        video title is always preserved in <code>&lt;originaltitle&gt;</code> in the NFO.</p>
+      </div>
+      <div class="card">
+        <h3>History</h3>
+        <p>The History page shows all your past downloads. Admins see
+        everyone's downloads. Filter by status (pending, downloading, done, failed, skipped).</p>
+      </div>
+      <div class="card">
+        <h3>Cancelling a download</h3>
+        <p>While a download is still <em>pending</em> (not yet started), click the ✕ button
+        in the queue. Once a download is in progress it cannot be cancelled from the UI.</p>
+      </div>
+    </div>
 
-<h2>User guide</h2>
+    <h2 class="section-heading">Admin guide</h2>
+    <div class="card-grid">
+      <div class="card">
+        <h3>Managing categories</h3>
+        <p>Categories map a friendly name to a filesystem path inside the Jellyfin library.
+        Visit <strong>Admin → Category management</strong> to add, edit, or delete categories.
+        The path must exist and be writable by the ytdlfin service user before you can save it.</p>
+      </div>
+      <div class="card">
+        <h3>Admin access</h3>
+        <p>Admin status is determined at login by PocketID group membership. Configure two
+        groups via environment variables: <code>ADMIN_GROUP</code> (full admin privileges —
+        category management and full history visibility) and <code>USER_GROUP</code> (regular
+        user access — submit downloads, view own history). Users not in either group are
+        denied access after a successful PocketID login.</p>
+      </div>
+    </div>
 
-<div class="card">
-  <h3>Submitting a download</h3>
-  <p>Paste any yt-dlp-supported URL into the form on the main page. Choose a category
-  (set up by an admin), optionally enter a custom title, and select a quality. Hit
-  <strong>Queue download</strong>. The download appears in the active queue below the form
-  and refreshes automatically every few seconds.</p>
-</div>
+    <h2 class="section-heading">Reference</h2>
+    <p>
+      <a href="reference/spec.html">Full implementation spec</a> — architecture, data model,
+      API endpoints, NixOS module options, environment variables, and decision log.
+    </p>
+  </main>
 
-<div class="card">
-  <h3>Quality options</h3>
-  <p><strong>1080p</strong> (default) — downloads the best available video up to 1080p and
-  merges it into MP4. <strong>Best available</strong> — downloads the highest quality stream
-  regardless of resolution (4K, HDR, etc.).</p>
-</div>
+  <footer class="container">
+    <a href="https://github.com/genebean/ytdlfin" target="_blank" rel="noopener">ytdlfin on GitHub</a>
+  </footer>
 
-<div class="card">
-  <h3>Custom title</h3>
-  <p>Leave blank to use the video's own title. If filled in, the custom title is used for
-  the folder name, MP4 filename, and NFO <code>&lt;title&gt;</code>. The original video
-  title is always preserved in <code>&lt;originaltitle&gt;</code> in the NFO.</p>
-</div>
-
-<div class="card">
-  <h3>History</h3>
-  <p>The <a href="#">History</a> page shows all your past downloads. Admins see everyone's
-  downloads. Filter by status (pending, downloading, done, failed, skipped).</p>
-</div>
-
-<div class="card">
-  <h3>Cancelling a download</h3>
-  <p>While a download is still <em>pending</em> (not yet started), click the ✕ button in
-  the queue. Once a download is in progress, it cannot be cancelled from the UI.</p>
-</div>
-
-<hr />
-
-<h2>Admin guide</h2>
-
-<div class="card">
-  <h3>Managing categories</h3>
-  <p>Categories map a friendly name to a filesystem path inside the Jellyfin library.
-  Visit <strong>Admin → Category management</strong> to add, edit, or delete categories.
-  The path must exist and be writable by the ytdlfin service user before you can save it.</p>
-</div>
-
-<div class="card">
-  <h3>Admin access</h3>
-  <p>Admin status is determined at login by matching your PocketID email address against
-  the <code>ADMIN_EMAILS</code> environment variable (comma-separated list, set in the NixOS
-  module or environment file).</p>
-</div>
-
-<hr />
-
-<h2>Reference</h2>
-<ul>
-  <li><a href="reference/spec.html">Full implementation spec</a> — architecture, data model,
-  API endpoints, NixOS module options, and decision log.</li>
-</ul>
-
+  <script>
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      var btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+    function toggleTheme() {
+      var current = document.documentElement.getAttribute('data-theme');
+      var next = current === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('ytdlfin-theme', next);
+      applyTheme(next);
+    }
+    function toggleNav() {
+      var links = document.getElementById('nav-links');
+      var btn = document.getElementById('nav-toggle');
+      var open = links.classList.toggle('open');
+      btn.setAttribute('aria-expanded', String(open));
+    }
+    document.addEventListener('click', function (e) {
+      var links = document.getElementById('nav-links');
+      var toggle = document.getElementById('nav-toggle');
+      if (links && toggle && !links.contains(e.target) && !toggle.contains(e.target)) {
+        links.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+    applyTheme(document.documentElement.getAttribute('data-theme') || 'light');
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+      if (!localStorage.getItem('ytdlfin-theme')) applyTheme(e.matches ? 'dark' : 'light');
+    });
+  </script>
 </body>
 </html>
