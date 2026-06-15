@@ -3,6 +3,7 @@
 {% if pending_items %}
 <div style="margin-bottom:0.75rem">
   <button
+    class="btn-gradient"
     hx-post="/api/queue/start"
     hx-target="#queue-section"
     hx-swap="innerHTML"
@@ -16,8 +17,8 @@
       <tr>
         <th class="wrap">Title / URL</th>
         <th>Category</th>
-        <th>Quality</th>
-        <th>Requested by</th>
+        <th class="col-quality">Quality</th>
+        <th class="col-requested-by">Requested by</th>
         <th>Status</th>
         <th></th>
       </tr>
@@ -30,5 +31,9 @@
   </table>
 </div>
 {% else %}
-<p class="secondary"><em>No active downloads.</em></p>
+<div class="empty-state">
+  <div class="empty-icon">📥</div>
+  <p>No active downloads.</p>
+  <p class="empty-hint">Paste a URL in the form above to get started.</p>
+</div>
 {% endif %}

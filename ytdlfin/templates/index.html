@@ -2,7 +2,10 @@
 {% block title %}ytdlfin — Download{% endblock %}
 
 {% block content %}
-<h2>Download a video</h2>
+<div class="page-hero">
+  <h2>Queue a download</h2>
+  <p class="tagline">Paste a URL to add it to the <span class="jellyfin-ref">Jellyfin</span> download queue</p>
+</div>
 
 <form action="/downloads" method="post">
   <label for="url">Video URL</label>
@@ -21,21 +24,21 @@
     hx-include="this"
   />
 
-  <label for="custom_title">Custom title <small>(optional — leave blank to use the video's title)</small></label>
+  <label for="custom_title">Custom title <small>(optional — overrides the video's title in Jellyfin)</small></label>
   <input
     type="text"
     id="custom_title"
     name="custom_title"
-    placeholder="Leave blank to use video's title"
+    placeholder="Leave blank to use the video's title"
   />
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:1rem;align-items:end">
     <div>
-      <label for="category_id">Category</label>
-      <select id="category_id" name="category_id" required>
+      <label for="category_id">Category <small id="category-desc" style="font-weight:normal;color:var(--yt-muted)"></small></label>
+      <select id="category_id" name="category_id" required onchange="updateCategoryDesc(this)">
         {% if categories %}
           {% for cat in categories %}
-          <option value="{{ cat.id }}">{{ cat.name }}</option>
+          <option value="{{ cat.id }}" data-description="{{ cat.description or '' }}">{{ cat.name }}</option>
           {% endfor %}
         {% else %}
           <option disabled value="">No categories — ask an admin to add one</option>
@@ -56,6 +59,17 @@
 
   <button type="submit" {% if not categories %}disabled{% endif %}>Queue download</button>
 </form>
+
+<script>
+  function updateCategoryDesc(sel) {
+    var desc = sel.options[sel.selectedIndex].getAttribute('data-description');
+    document.getElementById('category-desc').textContent = desc || '';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    var sel = document.getElementById('category_id');
+    if (sel && sel.options.length) updateCategoryDesc(sel);
+  });
+</script>
 
 <hr />
 <h3>Active downloads</h3>

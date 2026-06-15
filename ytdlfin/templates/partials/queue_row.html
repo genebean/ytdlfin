@@ -1,4 +1,4 @@
-<tr class="queue-item" id="queue-row-{{ item.id }}">
+<tr class="queue-item status-{{ item.status }}" id="queue-row-{{ item.id }}">
   <td class="wrap">
     {% if item.title %}
       {{ item.title }}{% if item.video_id %} [{{ item.video_id }}]{% endif %}
@@ -7,8 +7,8 @@
     {% endif %}
   </td>
   <td>{{ item.category_name }}</td>
-  <td>{{ item.quality }}</td>
-  <td>{{ item.requested_by_name }}</td>
+  <td class="col-quality">{{ item.quality }}</td>
+  <td class="col-requested-by">{{ item.requested_by_name }}</td>
   <td>
     <span class="badge badge-{{ item.status }}">{{ item.status }}</span>
   </td>
@@ -16,14 +16,14 @@
     {% if item.status == 'pending' and (user.is_admin or item.requested_by_email == user.email) %}
     <button
       class="outline secondary"
-      style="padding:0.2em 0.6em;font-size:0.85em;margin-right:0.25em"
+      style="padding:0.35em 0.75em;font-size:0.85em;margin-right:0.25em;min-width:2.5rem"
       hx-get="/partials/queue/{{ item.id }}/edit"
       hx-target="#queue-row-{{ item.id }}"
       hx-swap="outerHTML"
     >Edit</button>
     <button
       class="outline secondary"
-      style="padding:0.2em 0.6em;font-size:0.85em"
+      style="padding:0.35em 0.75em;font-size:0.85em;min-width:2.5rem"
       hx-delete="/api/downloads/{{ item.id }}"
       hx-target="#queue-row-{{ item.id }}"
       hx-swap="outerHTML"

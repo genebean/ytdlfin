@@ -1,28 +1,165 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="auto">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    (function () {
+      var stored = localStorage.getItem('ytdlfin-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', stored || (prefersDark ? 'dark' : 'light'));
+    })();
+  </script>
   <title>ytdlfin — Login</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
   <link
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css"
     integrity="sha384-L1dWfspMTHU/ApYnFiMz2QID/PlP1xCW9visvBdbEkOLkSSWsP6ZJWhPw6apiXxU"
     crossorigin="anonymous"
   />
+  <style>
+    :root {
+      --yt-pink:         #e040a8;
+      --yt-purple:       #8b5cf6;
+      --yt-blue:         #38b8f2;
+      --yt-gradient:     linear-gradient(90deg, var(--yt-pink), var(--yt-purple), var(--yt-blue));
+      --yt-gradient-135: linear-gradient(135deg, var(--yt-pink) 0%, var(--yt-purple) 50%, var(--yt-blue) 100%);
+      --yt-surface:      #f4f5f9;
+      --yt-card:         #ffffff;
+      --yt-border:       #e2e4ee;
+      --yt-text:         #1a1c2e;
+      --yt-muted:        #6b7280;
+    }
+    [data-theme="dark"] {
+      --yt-surface:      #0e0f1a;
+      --yt-card:         #161827;
+      --yt-border:       #2a2d44;
+      --yt-text:         #e8eaf6;
+      --yt-muted:        #8891b0;
+      --pico-background-color:      #0e0f1a;
+      --pico-card-background-color: #161827;
+    }
+
+    body {
+      background: var(--yt-surface);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-wrap {
+      width: 100%;
+      max-width: 22rem;
+      padding: 1rem;
+    }
+
+    .login-brand {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .brand-logo { display: block; margin: 0 auto 0.75rem; }
+
+    .brand-name {
+      font-family: 'Sora', sans-serif;
+      font-weight: 800;
+      font-size: 2rem;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .brand-ytdl { color: var(--yt-text); }
+    .brand-fin {
+      background: var(--yt-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+
+    .tagline { color: var(--yt-muted); font-size: 0.9rem; margin: 0.5rem 0 0; }
+    .jellyfin-ref { color: var(--yt-blue); font-weight: 600; }
+
+    .login-card {
+      background: var(--yt-card);
+      border: 1px solid var(--yt-border);
+      border-radius: 0.75rem;
+      padding: 2rem;
+    }
+
+    .btn-gradient {
+      display: block;
+      width: 100%;
+      padding: 0.75rem 1.5rem;
+      text-align: center;
+      background: var(--yt-gradient-135) !important;
+      border: none !important;
+      color: white !important;
+      font-weight: 600;
+      font-size: 1rem;
+      border-radius: var(--pico-border-radius);
+      text-decoration: none;
+      transition: opacity 0.15s, transform 0.1s;
+      cursor: pointer;
+    }
+    .btn-gradient:hover { opacity: 0.85; transform: translateY(-1px); color: white !important; }
+    .btn-gradient:active { transform: translateY(0); }
+
+    .flash-error {
+      background: #fde8ea;
+      color: #8b1a25;
+      border: 1px solid #f7bdc2;
+      padding: 0.75rem 1rem;
+      border-radius: var(--pico-border-radius);
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+    [data-theme="dark"] .flash-error {
+      background: #2a0d12;
+      color: #f08090;
+      border-color: #4a1a22;
+    }
+  </style>
 </head>
 <body>
-  <main class="container" style="max-width:28rem;margin-top:6rem">
-    <article>
-      <h2 style="text-align:center">ytdlfin</h2>
-      <p style="text-align:center">Sign in with your PocketID account to continue.</p>
-      <a href="/auth/login" role="button" style="width:100%;text-align:center;display:block">
-        Sign in with PocketID
-      </a>
+  <div class="login-wrap">
+    <div class="login-brand">
+      <svg class="brand-logo" aria-hidden="true" width="56" height="56" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="ytg-login" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"   stop-color="#e040a8"/>
+            <stop offset="50%"  stop-color="#8b5cf6"/>
+            <stop offset="100%" stop-color="#38b8f2"/>
+          </linearGradient>
+        </defs>
+        <rect x="2" y="7" width="20" height="13" rx="2" fill="url(#ytg-login)" opacity="0.9"/>
+        <path d="M2 7 L2 5 Q2 4 3 4 L9 4 L11 7 Z" fill="url(#ytg-login)"/>
+        <polygon points="9.5,10.5 9.5,16.5 16,13.5" fill="white" opacity="0.92"/>
+        <rect x="11.5" y="10.5" width="2" height="4.5" rx="0.5" fill="white" opacity="0.92"/>
+        <polygon points="10,14.5 12.5,17.5 15,14.5" fill="white" opacity="0.92"/>
+        <rect x="10" y="18" width="5" height="1.2" rx="0.5" fill="white" opacity="0.85"/>
+        <rect x="19"   y="4"   width="1.5" height="1.5" rx="0.3" fill="#e040a8" opacity="0.9"/>
+        <rect x="21"   y="2"   width="1"   height="1"   rx="0.2" fill="#38b8f2" opacity="0.8"/>
+        <rect x="17.5" y="2.5" width="1"   height="1"   rx="0.2" fill="#8b5cf6" opacity="0.85"/>
+        <rect x="20.5" y="5.5" width="0.8" height="0.8" rx="0.2" fill="#e040a8" opacity="0.7"/>
+      </svg>
+      <div class="brand-name">
+        <span class="brand-ytdl">ytdl</span><span class="brand-fin">fin</span>
+      </div>
+      <p class="tagline">Downloads for <span class="jellyfin-ref">Jellyfin</span></p>
+    </div>
+
+    <div class="login-card">
+      <a href="/auth/login" class="btn-gradient">Sign in with PocketID</a>
       {% if error %}
-      <p style="color:red;margin-top:1rem">{{ error }}</p>
+      <div class="flash-error">{{ error }}</div>
       {% endif %}
-    </article>
-  </main>
+    </div>
+  </div>
 </body>
 </html>

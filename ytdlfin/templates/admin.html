@@ -4,6 +4,32 @@
 {% block content %}
 <h2>Category management</h2>
 
+<div id="add-category-result"></div>
+
+<form
+  hx-post="/api/categories"
+  hx-target="#category-list"
+  hx-swap="innerHTML"
+  hx-on:htmx:after-request="if(event.detail.successful){ this.reset(); document.getElementById('add-category-result').innerHTML=''; } else { document.getElementById('add-category-result').innerHTML='<div class=\'flash-error\'>'+event.detail.xhr.responseText+'</div>'; }"
+  style="margin-bottom:2rem"
+>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:0.75rem">
+    <div>
+      <label for="cat-name">Name</label>
+      <input type="text" id="cat-name" name="name" placeholder="Movies" required />
+    </div>
+    <div>
+      <label for="cat-path">Filesystem path</label>
+      <input type="text" id="cat-path" name="path" placeholder="/data/jellyfin/movies" required />
+    </div>
+    <div>
+      <label for="cat-desc">Description <small>(optional)</small></label>
+      <input type="text" id="cat-desc" name="description" placeholder="Feature films" />
+    </div>
+  </div>
+  <button type="submit">Add category</button>
+</form>
+
 <h3>Categories</h3>
 <div class="overflow-x">
   <table>
@@ -20,34 +46,6 @@
     </tbody>
   </table>
 </div>
-
-<hr />
-<h3>Add category</h3>
-
-<div id="add-category-result"></div>
-
-<form
-  hx-post="/api/categories"
-  hx-target="#category-list"
-  hx-swap="innerHTML"
-  hx-on:htmx:after-request="if(event.detail.successful){ this.reset(); document.getElementById('add-category-result').innerHTML=''; } else { document.getElementById('add-category-result').innerHTML='<p style=\'color:red\'>'+event.detail.xhr.responseText+'</p>'; }"
->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:0.75rem">
-    <div>
-      <label for="cat-name">Name</label>
-      <input type="text" id="cat-name" name="name" placeholder="Movies" required />
-    </div>
-    <div>
-      <label for="cat-path">Filesystem path</label>
-      <input type="text" id="cat-path" name="path" placeholder="/orico/jellyfin/data/Movies" required />
-    </div>
-    <div>
-      <label for="cat-desc">Description <small>(optional)</small></label>
-      <input type="text" id="cat-desc" name="description" placeholder="Feature films" />
-    </div>
-  </div>
-  <button type="submit">Add</button>
-</form>
 
 {# Per-row delete confirm dialogs are rendered inside the category_row partial. #}
 {% endblock %}
