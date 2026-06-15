@@ -14,6 +14,7 @@ import aiosqlite
 import yt_dlp.utils
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -48,6 +49,7 @@ HTTPS_ONLY = os.environ.get("HTTPS_ONLY", "false").lower() == "true"
 TRUSTED_PROXY_IPS = os.environ.get("TRUSTED_PROXY_IPS", "*")
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
+STATIC_DIR = Path(__file__).parent / "static"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
@@ -96,6 +98,8 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="ytdlfin", lifespan=lifespan)
+
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     app.add_middleware(
         SessionMiddleware,

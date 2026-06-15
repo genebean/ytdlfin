@@ -4,18 +4,15 @@
 {% block content %}
 <h2>Download history</h2>
 
-{# Status filter #}
-<form method="get" action="/history" style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
-  <label for="status_filter" style="margin:0">Filter by status:</label>
-  <select id="status_filter" name="status" onchange="this.form.submit()" style="max-width:12rem">
-    <option value="" {% if not status_filter %}selected{% endif %}>All</option>
-    <option value="pending"     {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
-    <option value="downloading" {% if status_filter == 'downloading' %}selected{% endif %}>Downloading</option>
-    <option value="done"        {% if status_filter == 'done' %}selected{% endif %}>Done</option>
-    <option value="failed"      {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
-    <option value="skipped"     {% if status_filter == 'skipped' %}selected{% endif %}>Skipped</option>
-  </select>
-</form>
+{# Status filter pills #}
+<div class="status-pills">
+  <a href="/history" class="status-pill {% if not status_filter %}active{% endif %}">All</a>
+  <a href="/history?status=pending"     class="status-pill {% if status_filter == 'pending' %}active{% endif %}">Pending</a>
+  <a href="/history?status=downloading" class="status-pill {% if status_filter == 'downloading' %}active{% endif %}">Downloading</a>
+  <a href="/history?status=done"        class="status-pill {% if status_filter == 'done' %}active{% endif %}">Done</a>
+  <a href="/history?status=failed"      class="status-pill {% if status_filter == 'failed' %}active{% endif %}">Failed</a>
+  <a href="/history?status=skipped"     class="status-pill {% if status_filter == 'skipped' %}active{% endif %}">Skipped</a>
+</div>
 
 {% if downloads %}
 <div class="overflow-x">
@@ -23,12 +20,12 @@
     <thead>
       <tr>
         <th class="wrap">Title</th>
+        <th>Status</th>
         <th>Category</th>
         <th>Quality</th>
         <th>Requested by</th>
         <th>Requested</th>
         <th>Completed</th>
-        <th>Status</th>
       </tr>
     </thead>
     <tbody>
@@ -36,29 +33,34 @@
       <tr>
         <td class="wrap">
           {% if dl.title %}
+            {{ dl.title }}{% if dl.video_id %} [{{ dl.video_id }}]{% endif %}
             {% if dl.status == 'done' and dl.final_path %}
-              <span data-tooltip="{{ dl.final_path }}" data-placement="bottom">
-                {{ dl.title }}{% if dl.video_id %} [{{ dl.video_id }}]{% endif %}
-              </span>
-            {% else %}
-              {{ dl.title }}{% if dl.video_id %} [{{ dl.video_id }}]{% endif %}
+              <br />
+              <details>
+                <summary class="path-summary">📁 saved path</summary>
+                <small><code>{{ dl.final_path }}</code></small>
+              </details>
             {% endif %}
           {% else %}
             <small>{{ dl.url | truncate(60) }}</small>
           {% endif %}
           {% if dl.status == 'failed' and dl.error_msg %}
-            <br /><small style="color:var(--pico-del-color)" data-tooltip="{{ dl.error_msg }}" data-placement="bottom">⚠ error (hover)</small>
+            <br />
+            <details>
+              <summary class="error-summary">⚠ error</summary>
+              <small>{{ dl.error_msg }}</small>
+            </details>
           {% endif %}
           {% if dl.status == 'skipped' and dl.skipped_reason %}
             <br /><small>{{ dl.skipped_reason }}</small>
           {% endif %}
         </td>
+        <td><span class="badge badge-{{ dl.status }}">{{ dl.status }}</span></td>
         <td>{{ dl.category_name }}</td>
         <td>{{ dl.quality }}</td>
         <td>{{ dl.requested_by_name }}</td>
         <td><small>{{ dl.requested_at[:16] if dl.requested_at else '—' }}</small></td>
         <td><small>{{ dl.completed_at[:16] if dl.completed_at else '—' }}</small></td>
-        <td><span class="badge badge-{{ dl.status }}">{{ dl.status }}</span></td>
       </tr>
       {% endfor %}
     </tbody>
@@ -81,6 +83,12 @@
 {% endif %}
 
 {% else %}
-<p><em>No downloads yet{% if status_filter %} with status "{{ status_filter }}"{% endif %}.</em></p>
+<div class="empty-state">
+  <div class="empty-icon">📭</div>
+  <p>No downloads yet{% if status_filter %} with status "{{ status_filter }}"{% endif %}.</p>
+  {% if not status_filter %}
+  <p class="empty-hint">Queue your first download from the <a href="/">home page</a>.</p>
+  {% endif %}
+</div>
 {% endif %}
 {% endblock %}
