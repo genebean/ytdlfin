@@ -3,71 +3,134 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    (function () {
+      var stored = localStorage.getItem('ytdlfin-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', stored || (prefersDark ? 'dark' : 'light'));
+    })();
+  </script>
   <title>ytdlfin — Implementation Spec</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css"
+    integrity="sha384-L1dWfspMTHU/ApYnFiMz2QID/PlP1xCW9visvBdbEkOLkSSWsP6ZJWhPw6apiXxU"
+    crossorigin="anonymous"
+  />
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 60rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }
-    h1, h2 { border-bottom: 1px solid #d1d5da; padding-bottom: 0.3em; }
-    a { color: #0969da; }
-    nav ul { list-style: none; padding: 0; display: flex; gap: 1.5rem; flex-wrap: wrap; }
-    nav ul li a { text-decoration: none; font-weight: 600; }
-    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-    th, td { border: 1px solid #d1d5da; padding: 0.45em 0.75em; text-align: left; }
-    th { background: #f6f8fa; }
-    pre { background: #f6f8fa; border: 1px solid #d1d5da; border-radius: 4px; padding: 1em; overflow-x: auto; }
-    code { background: #f6f8fa; padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.92em; }
-    pre code { background: none; padding: 0; }
-    .note { background: #ddf4ff; border: 1px solid #54aeff; border-radius: 4px; padding: 0.75em 1em; margin: 1em 0; }
+    :root { --spacing: 1rem; }
+    nav .brand { font-weight: bold; font-size: 1.1rem; text-decoration: none; color: inherit; }
+    nav ul { list-style: none; }
+    nav a { text-decoration: none; }
+    .hero { padding: 2.5rem 0 1.5rem; border-bottom: 1px solid var(--pico-muted-border-color); margin-bottom: 2rem; }
+    .hero h1 { margin-bottom: 0.4rem; border: none; padding: 0; }
+    .hero p { color: var(--pico-muted-color); margin: 0; font-size: 1.05rem; }
+    h2 { margin-top: 2.5rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--pico-muted-border-color); }
+    h3 { margin-top: 1.5rem; }
+    pre {
+      background: var(--pico-card-background-color);
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: var(--pico-border-radius);
+      padding: 1em;
+      overflow-x: auto;
+      font-size: 0.9em;
+      line-height: 1.5;
+    }
+    pre code { background: none; padding: 0; font-size: inherit; }
+    code {
+      background: var(--pico-card-background-color);
+      border: 1px solid var(--pico-muted-border-color);
+      padding: 0.1em 0.35em;
+      border-radius: 3px;
+      font-size: 0.88em;
+    }
+    table { font-size: 0.93rem; }
+    .note {
+      background: var(--pico-card-background-color);
+      border-left: 3px solid var(--pico-primary);
+      border-radius: 0 var(--pico-border-radius) var(--pico-border-radius) 0;
+      padding: 0.75em 1em;
+      margin: 1em 0;
+    }
+    .note strong { color: var(--pico-primary); }
+    dl dt { font-weight: 600; margin-top: 1.25rem; }
+    dl dd { margin-left: 1.5rem; color: var(--pico-muted-color); }
+    dl dd code { color: var(--pico-color); }
+    #theme-toggle { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0.2em 0.4em; line-height: 1; color: inherit; }
+    footer { margin-top: 3rem; padding: 1.5rem 0; border-top: 1px solid var(--pico-muted-border-color); text-align: center; font-size: 0.85em; color: var(--pico-muted-color); }
+    footer a { color: inherit; }
+    .nav-hamburger { display: none; background: none; border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); padding: 0.25em 0.55em; font-size: 1.1rem; line-height: 1; cursor: pointer; color: inherit; margin: 0; }
+    @media (max-width: 640px) {
+      nav > ul:first-child { width: 100%; justify-content: space-between; }
+      .nav-hamburger { display: block; }
+      nav { position: relative; }
+      nav > ul.nav-links { display: none; position: absolute; top: calc(100% + 0.25rem); right: 0; z-index: 200; flex-direction: column; gap: 0.25rem; width: max-content; max-width: calc(100vw - 2rem); padding: 0.75rem 1rem; background: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+      nav > ul.nav-links.open { display: flex; }
+      nav > ul.nav-links li { list-style: none; }
+    }
   </style>
 </head>
 <body>
+  <header class="container">
+    <nav>
+      <ul>
+        <li><a href="../index.html" class="brand">ytdlfin</a></li>
+        <li>
+          <button class="nav-hamburger" id="nav-toggle" aria-label="Menu" aria-expanded="false" onclick="toggleNav()">☰</button>
+        </li>
+      </ul>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="../index.html">← Docs home</a></li>
+        <li><a href="https://github.com/genebean/ytdlfin" target="_blank" rel="noopener">GitHub</a></li>
+        <li><button id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark theme"></button></li>
+      </ul>
+    </nav>
+  </header>
 
-<h1>ytdlfin — Implementation Spec</h1>
-<p>Authoritative reference for architecture, technology decisions, data model, API,
-and the NixOS deployment module. Keep this document in sync with the code.</p>
+  <main class="container">
+    <div class="hero">
+      <h1>Implementation Spec</h1>
+      <p>Authoritative reference for architecture, technology decisions, data model, API,
+      and the NixOS deployment module. Keep this document in sync with the code.</p>
+    </div>
 
-<nav>
-  <ul>
-    <li><a href="../index.html">← Docs home</a></li>
-  </ul>
-</nav>
+    <h2>Goals</h2>
+    <ul>
+      <li>Any authenticated user pastes a URL, picks a category, hits go — file lands in the
+      correct Jellyfin subdirectory with proper folder structure, NFO metadata, and poster art.</li>
+      <li>Admin users manage categories (name → filesystem path) via the web UI.</li>
+      <li>Full download queue visible to all users; history of past downloads.</li>
+      <li>MP4 output; per-download resolution picker (auto-detected from the URL, defaults to 1080p).</li>
+      <li>yt-dlp archive file per category to prevent re-downloading.</li>
+      <li>Works with any yt-dlp-supported site, not just YouTube.</li>
+    </ul>
 
-<hr />
+    <h2>Non-Goals</h2>
+    <ul>
+      <li>No Jellyfin API integration — rely on Jellyfin's scheduled library scan.</li>
+      <li>No channel/playlist subscription (that's Pinchflat's job).</li>
+      <li>No concurrent downloads — serial queue is intentional (avoids rate limits).</li>
+    </ul>
 
-<h2>Goals</h2>
-<ul>
-  <li>Any authenticated user pastes a URL, picks a category, hits go — file lands in the
-  correct Jellyfin subdirectory with proper folder structure, NFO metadata, and poster art.</li>
-  <li>Admin users manage categories (name → filesystem path) via the web UI.</li>
-  <li>Full download queue visible to all users; history of past downloads.</li>
-  <li>MP4 output, 1080p by default; per-download toggle for best available (4K/HDR).</li>
-  <li>yt-dlp archive file per category to prevent re-downloading.</li>
-  <li>Works with any yt-dlp-supported site, not just YouTube.</li>
-</ul>
+    <h2>Tech Stack</h2>
+    <figure><table>
+      <thead><tr><th>Layer</th><th>Choice</th></tr></thead>
+      <tbody>
+        <tr><td>Language</td><td>Python 3.11+</td></tr>
+        <tr><td>Web framework</td><td>FastAPI</td></tr>
+        <tr><td>Database</td><td>SQLite via <code>aiosqlite</code></td></tr>
+        <tr><td>Templates</td><td>Jinja2</td></tr>
+        <tr><td>Frontend</td><td>HTMX + Pico CSS (CDN, SRI-hashed, no build step)</td></tr>
+        <tr><td>Auth</td><td><code>authlib</code> (OIDC), <code>itsdangerous</code> (session signing)</td></tr>
+        <tr><td>Downloader</td><td><code>yt-dlp</code> Python library (not subprocess)</td></tr>
+        <tr><td>System deps</td><td><code>ffmpeg</code> (muxing)</td></tr>
+        <tr><td>Package</td><td><code>pyproject.toml</code> / hatchling</td></tr>
+        <tr><td>Deployment</td><td>NixOS module via flake (nixos-26.05)</td></tr>
+      </tbody>
+    </table></figure>
 
-<h2>Non-Goals</h2>
-<ul>
-  <li>No Jellyfin API integration — rely on Jellyfin's scheduled library scan.</li>
-  <li>No channel/playlist subscription (that's Pinchflat's job).</li>
-  <li>No concurrent downloads — serial queue is intentional (avoids rate limits).</li>
-</ul>
-
-<h2>Tech Stack</h2>
-<table>
-  <tr><th>Layer</th><th>Choice</th></tr>
-  <tr><td>Language</td><td>Python 3.11+</td></tr>
-  <tr><td>Web framework</td><td>FastAPI</td></tr>
-  <tr><td>Database</td><td>SQLite via <code>aiosqlite</code></td></tr>
-  <tr><td>Templates</td><td>Jinja2</td></tr>
-  <tr><td>Frontend</td><td>HTMX + Pico CSS (CDN, SRI-hashed, no build step)</td></tr>
-  <tr><td>Auth</td><td><code>authlib</code> (OIDC), <code>itsdangerous</code> (session signing)</td></tr>
-  <tr><td>Downloader</td><td><code>yt-dlp</code> Python library (not subprocess)</td></tr>
-  <tr><td>System deps</td><td><code>ffmpeg</code> (muxing)</td></tr>
-  <tr><td>Package</td><td><code>pyproject.toml</code> / hatchling</td></tr>
-  <tr><td>Deployment</td><td>NixOS module via flake (nixos-26.05)</td></tr>
-</table>
-
-<h2>Project Structure</h2>
-<pre>ytdlfin/
+    <h2>Project Structure</h2>
+    <pre>ytdlfin/
 ├── flake.nix               # devShell + buildPythonApplication + nixosModules.default
 ├── pyproject.toml
 ├── ytdlfin/
@@ -89,41 +152,44 @@ and the NixOS deployment module. Keep this document in sync with the code.</p>
 │       └── partials/
 │           ├── category_list.html
 │           ├── category_row.html
-│           └── category_edit_row.html
+│           ├── category_edit_row.html
+│           ├── quality_select.html
+│           ├── queue_row.html
+│           └── queue_row_edit.html
 ├── nix/
 │   └── module.nix
 └── docs/
     ├── index.html
     └── reference/spec.html  ← this file</pre>
 
-<h2>Output File Structure</h2>
-<pre>{category_path}/
+    <h2>Output File Structure</h2>
+    <pre>{category_path}/
 └── {display_title} [{video_id}]/
     ├── {display_title} [{video_id}].mp4
     ├── {display_title} [{video_id}].nfo
     └── {display_title} [{video_id}]-poster.jpg</pre>
 
-<p><code>display_title</code> is the user-supplied custom title if provided, otherwise the
-yt-dlp title. The <code>[video_id]</code> suffix is always appended. File/folder names are
-sanitized via <code>yt_dlp.utils.sanitize_filename()</code>.</p>
+    <p><code>display_title</code> is the user-supplied custom title if provided, otherwise the
+    yt-dlp title. The <code>[video_id]</code> suffix is always appended. File/folder names are
+    sanitized via <code>yt_dlp.utils.sanitize_filename()</code>.</p>
 
-<h3>Staging</h3>
-<p>Downloads are assembled in <code>{STAGING_DIR}/{download_id}/</code> and atomically
-moved to the final location only when complete. On app startup, any leftover staging
-subdirectories from a previous crash are deleted and interrupted downloads are reset to
-<code>pending</code> before the worker re-queues them.</p>
+    <h3>Staging</h3>
+    <p>Downloads are assembled in <code>{STAGING_DIR}/{download_id}/</code> and atomically
+    moved to the final location only when complete. On app startup, any leftover staging
+    subdirectories from a previous crash are deleted and interrupted downloads are reset to
+    <code>pending</code> before the worker re-queues them.</p>
 
-<p class="note"><strong>Filesystem note:</strong> For atomic moves (rename, not copy+delete),
-<code>STAGING_DIR</code> must be on the same mount as the Jellyfin library. Override the
-NixOS module default (<code>/var/lib/ytdlfin/staging</code>) to a path on the same
-filesystem as your media library, e.g. <code>/orico/jellyfin/.ytdlfin-staging</code>.</p>
+    <p class="note"><strong>Filesystem note:</strong> For atomic moves (rename, not copy+delete),
+    <code>STAGING_DIR</code> must be on the same mount as the Jellyfin library. Override the
+    NixOS module default (<code>/var/lib/ytdlfin/staging</code>) to a path on the same
+    filesystem as your media library, e.g. <code>/orico/jellyfin/.ytdlfin-staging</code>.</p>
 
-<h2>Database</h2>
-<p>SQLite at <code>{DATA_DIR}/ytdlfin.db</code>. Default journal mode (<code>DELETE</code>,
-not WAL) — no sidecar files, safe for restic snapshots between transactions.</p>
+    <h2>Database</h2>
+    <p>SQLite at <code>{DATA_DIR}/ytdlfin.db</code>. Default journal mode (<code>DELETE</code>,
+    not WAL) — no sidecar files, safe for restic snapshots between transactions.</p>
 
-<h3>Schema</h3>
-<pre>categories (
+    <h3>Schema</h3>
+    <pre>categories (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT NOT NULL UNIQUE,
     path        TEXT NOT NULL,
@@ -153,42 +219,44 @@ downloads (
     skipped_reason      TEXT
 )</pre>
 
-<h3>Status values</h3>
-<table>
-  <tr><th>Status</th><th>Meaning</th></tr>
-  <tr><td><code>pending</code></td><td>In queue, not started</td></tr>
-  <tr><td><code>downloading</code></td><td>yt-dlp is actively working</td></tr>
-  <tr><td><code>done</code></td><td>Completed successfully</td></tr>
-  <tr><td><code>failed</code></td><td>yt-dlp or filesystem error</td></tr>
-  <tr><td><code>skipped</code></td><td>URL was already in the category's archive file</td></tr>
-</table>
+    <h3>Status values</h3>
+    <figure><table>
+      <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>pending</code></td><td>In queue, not started</td></tr>
+        <tr><td><code>downloading</code></td><td>yt-dlp is actively working</td></tr>
+        <tr><td><code>done</code></td><td>Completed successfully</td></tr>
+        <tr><td><code>failed</code></td><td>yt-dlp or filesystem error</td></tr>
+        <tr><td><code>skipped</code></td><td>URL was already in the category's archive file</td></tr>
+      </tbody>
+    </table></figure>
 
-<h2>Authentication</h2>
-<p>PocketID OIDC via <code>authlib.integrations.starlette_client</code>. Session stored
-client-side in a signed cookie (<code>itsdangerous</code> / <code>SessionMiddleware</code>).
-Session contains: <code>sub</code>, <code>email</code>, <code>name</code>, <code>is_admin</code>.</p>
+    <h2>Authentication</h2>
+    <p>PocketID OIDC via <code>authlib.integrations.starlette_client</code>. Session stored
+    client-side in a signed cookie (<code>itsdangerous</code> / <code>SessionMiddleware</code>).
+    Session contains: <code>sub</code>, <code>email</code>, <code>name</code>, <code>is_admin</code>.</p>
 
-<p>Access control is group-based. The OIDC token is requested with the <code>groups</code>
-scope; PocketID returns a <code>groups</code> claim (array of group name strings) in the
-userinfo response. Two groups are configured via env vars:</p>
-<ul>
-  <li><code>ADMIN_GROUP</code> — members receive admin privileges (category management,
-  full history visibility)</li>
-  <li><code>USER_GROUP</code> — members receive regular user access (submit downloads,
-  view own history)</li>
-</ul>
-<p>A user not in either group is redirected to <code>/auth/denied</code> after a
-successful PocketID login. Their session is cleared immediately. No per-request DB lookup
-is needed — group membership is resolved once at login and stored in the session.</p>
+    <p>Access control is group-based. The OIDC token is requested with the <code>groups</code>
+    scope; PocketID returns a <code>groups</code> claim (array of group name strings) in the
+    userinfo response. Two groups are configured via env vars:</p>
+    <ul>
+      <li><code>ADMIN_GROUP</code> — members receive admin privileges (category management,
+      full history visibility)</li>
+      <li><code>USER_GROUP</code> — members receive regular user access (submit downloads,
+      view own history)</li>
+    </ul>
+    <p>A user not in either group is redirected to <code>/auth/denied</code> after a
+    successful PocketID login. Their session is cleared immediately. No per-request DB lookup
+    is needed — group membership is resolved once at login and stored in the session.</p>
 
-<h2>Reverse Proxy</h2>
-<p>ytdlfin is designed to run behind nginx with TLS termination. Two things must be
-configured correctly for the OIDC flow and session cookies to work:</p>
+    <h2>Reverse Proxy</h2>
+    <p>ytdlfin is designed to run behind nginx with TLS termination. Two things must be
+    configured correctly for the OIDC flow and session cookies to work:</p>
 
-<h3>nginx configuration</h3>
-<p>nginx must forward the real client IP and scheme so uvicorn can reconstruct the
-correct request URL:</p>
-<pre>location / {
+    <h3>nginx configuration</h3>
+    <p>nginx must forward the real client IP and scheme so uvicorn can reconstruct the
+    correct request URL:</p>
+    <pre>location / {
     proxy_pass http://127.0.0.1:8000;
     proxy_set_header Host              $host;
     proxy_set_header X-Real-IP         $remote_addr;
@@ -196,70 +264,82 @@ correct request URL:</p>
     proxy_set_header X-Forwarded-Proto $scheme;
 }</pre>
 
-<h3>Application behaviour</h3>
-<p>When <code>HTTPS_ONLY=true</code> (set automatically by the NixOS module):</p>
-<ul>
-  <li>uvicorn trusts <code>X-Forwarded-Proto</code> from upstream proxies, so
-  <code>request.url.scheme</code> returns <code>https</code>. This is required for
-  authlib to construct the correct OIDC redirect URI.</li>
-  <li><code>SessionMiddleware</code> marks cookies <code>Secure</code>, so browsers
-  only transmit the session over TLS.</li>
-</ul>
-<p><code>TRUSTED_PROXY_IPS</code> controls which upstream IPs are allowed to set
-forwarded headers. The default <code>*</code> (trust all) is appropriate for LAN
-deployments protected by a physical firewall. Set to <code>127.0.0.1</code> if
-tighter control is needed.</p>
+    <h3>Application behaviour</h3>
+    <p>When <code>HTTPS_ONLY=true</code> (set automatically by the NixOS module):</p>
+    <ul>
+      <li>uvicorn trusts <code>X-Forwarded-Proto</code> from upstream proxies, so
+      <code>request.url.scheme</code> returns <code>https</code>. This is required for
+      authlib to construct the correct OIDC redirect URI.</li>
+      <li><code>SessionMiddleware</code> marks cookies <code>Secure</code>, so browsers
+      only transmit the session over TLS.</li>
+    </ul>
+    <p><code>TRUSTED_PROXY_IPS</code> controls which upstream IPs are allowed to set
+    forwarded headers. The default <code>*</code> (trust all) is appropriate for LAN
+    deployments protected by a physical firewall. Set to <code>127.0.0.1</code> if
+    tighter control is needed.</p>
 
-<p class="note"><strong>Dev note:</strong> Leave <code>HTTPS_ONLY</code> unset (defaults
-to <code>false</code>) for local HTTP development. The session cookie will not be marked
-Secure, which is correct for plain HTTP.</p>
+    <p class="note"><strong>Dev note:</strong> Leave <code>HTTPS_ONLY</code> unset (defaults
+    to <code>false</code>) for local HTTP development. The session cookie will not be marked
+    Secure, which is correct for plain HTTP.</p>
 
-<h2>API Endpoints</h2>
-<table>
-  <tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr>
-  <tr><td>GET</td><td>/auth/login</td><td>—</td><td>Initiate OIDC redirect</td></tr>
-  <tr><td>GET</td><td>/auth/callback</td><td>—</td><td>OIDC callback, set session</td></tr>
-  <tr><td>POST</td><td>/auth/logout</td><td>—</td><td>Clear session</td></tr>
-  <tr><td>GET</td><td>/</td><td>user</td><td>Main page with form and queue</td></tr>
-  <tr><td>POST</td><td>/downloads</td><td>user</td><td>Browser form submit → redirect</td></tr>
-  <tr><td>GET</td><td>/history</td><td>user</td><td>Paginated history page</td></tr>
-  <tr><td>GET</td><td>/admin</td><td>admin</td><td>Category management page</td></tr>
-  <tr><td>GET</td><td>/api/queue</td><td>user</td><td>HTMX queue partial (polled every 3s)</td></tr>
-  <tr><td>POST</td><td>/api/downloads</td><td>user</td><td>JSON API: queue a download (201)</td></tr>
-  <tr><td>GET</td><td>/api/downloads</td><td>user</td><td>JSON paginated history</td></tr>
-  <tr><td>DELETE</td><td>/api/downloads/{id}</td><td>user/admin</td><td>Cancel pending download</td></tr>
-  <tr><td>GET</td><td>/api/categories</td><td>user</td><td>JSON category list</td></tr>
-  <tr><td>POST</td><td>/api/categories</td><td>admin</td><td>Create category</td></tr>
-  <tr><td>PUT</td><td>/api/categories/{id}</td><td>admin</td><td>Update category</td></tr>
-  <tr><td>DELETE</td><td>/api/categories/{id}</td><td>admin</td><td>Delete category</td></tr>
-  <tr><td>GET</td><td>/partials/categories</td><td>admin</td><td>HTMX: full category tbody</td></tr>
-  <tr><td>GET</td><td>/partials/categories/{id}</td><td>admin</td><td>HTMX: single category row</td></tr>
-  <tr><td>GET</td><td>/partials/categories/{id}/edit</td><td>admin</td><td>HTMX: inline edit form row</td></tr>
-</table>
+    <h2>API Endpoints</h2>
+    <figure><table>
+      <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>GET</td><td>/auth/login</td><td>—</td><td>Initiate OIDC redirect</td></tr>
+        <tr><td>GET</td><td>/auth/callback</td><td>—</td><td>OIDC callback, set session</td></tr>
+        <tr><td>POST</td><td>/auth/logout</td><td>—</td><td>Clear session</td></tr>
+        <tr><td>GET</td><td>/</td><td>user</td><td>Main page with form and queue</td></tr>
+        <tr><td>POST</td><td>/downloads</td><td>user</td><td>Browser form submit → redirect</td></tr>
+        <tr><td>GET</td><td>/history</td><td>user</td><td>Paginated history page</td></tr>
+        <tr><td>GET</td><td>/admin</td><td>admin</td><td>Category management page</td></tr>
+        <tr><td>GET</td><td>/api/resolutions</td><td>user</td><td>HTMX: resolution picker HTML for a given URL</td></tr>
+        <tr><td>GET</td><td>/api/queue</td><td>user</td><td>HTMX queue partial (polled every 3s)</td></tr>
+        <tr><td>POST</td><td>/api/queue/start</td><td>user</td><td>Enqueue all pending downloads to start the worker</td></tr>
+        <tr><td>POST</td><td>/api/downloads</td><td>user</td><td>JSON API: queue a download (201)</td></tr>
+        <tr><td>GET</td><td>/api/downloads</td><td>user</td><td>JSON paginated history</td></tr>
+        <tr><td>PATCH</td><td>/api/downloads/{id}</td><td>user/admin</td><td>Update category of a pending download</td></tr>
+        <tr><td>DELETE</td><td>/api/downloads/{id}</td><td>user/admin</td><td>Cancel pending download</td></tr>
+        <tr><td>GET</td><td>/api/categories</td><td>user</td><td>JSON category list</td></tr>
+        <tr><td>POST</td><td>/api/categories</td><td>admin</td><td>Create category</td></tr>
+        <tr><td>PUT</td><td>/api/categories/{id}</td><td>admin</td><td>Update category</td></tr>
+        <tr><td>DELETE</td><td>/api/categories/{id}</td><td>admin</td><td>Delete category</td></tr>
+        <tr><td>GET</td><td>/partials/queue/{id}</td><td>user</td><td>HTMX: single queue row (normal view)</td></tr>
+        <tr><td>GET</td><td>/partials/queue/{id}/edit</td><td>user</td><td>HTMX: single queue row (edit view)</td></tr>
+        <tr><td>GET</td><td>/partials/categories</td><td>admin</td><td>HTMX: full category tbody</td></tr>
+        <tr><td>GET</td><td>/partials/categories/{id}</td><td>admin</td><td>HTMX: single category row</td></tr>
+        <tr><td>GET</td><td>/partials/categories/{id}/edit</td><td>admin</td><td>HTMX: inline edit form row</td></tr>
+      </tbody>
+    </table></figure>
 
-<h2>Configuration (Environment Variables)</h2>
-<table>
-  <tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr>
-  <tr><td><code>DATA_DIR</code></td><td>Yes</td><td>—</td><td>Directory for ytdlfin.db. Back this up.</td></tr>
-  <tr><td><code>STAGING_DIR</code></td><td>No</td><td><code>{DATA_DIR}/staging</code></td><td>Temp dir for in-progress downloads. Keep on same filesystem as Jellyfin library.</td></tr>
-  <tr><td><code>SECRET_KEY</code></td><td>Yes</td><td>—</td><td>32+ random chars for session signing</td></tr>
-  <tr><td><code>OIDC_ISSUER_URL</code></td><td>Yes</td><td>—</td><td>PocketID base URL</td></tr>
-  <tr><td><code>OIDC_CLIENT_ID</code></td><td>Yes</td><td>—</td><td>OIDC client ID</td></tr>
-  <tr><td><code>OIDC_CLIENT_SECRET</code></td><td>Yes</td><td>—</td><td>OIDC client secret (in environmentFile)</td></tr>
-  <tr><td><code>OIDC_REDIRECT_URI</code></td><td>Yes</td><td>—</td><td>Full callback URL, e.g. https://ytdlfin.example.com/auth/callback</td></tr>
-  <tr><td><code>ADMIN_GROUP</code></td><td>Yes</td><td>—</td><td>PocketID group name for admin access</td></tr>
-  <tr><td><code>USER_GROUP</code></td><td>Yes</td><td>—</td><td>PocketID group name for regular user access</td></tr>
-  <tr><td><code>PORT</code></td><td>No</td><td>8000</td><td>HTTP listen port</td></tr>
-  <tr><td><code>LOG_LEVEL</code></td><td>No</td><td>info</td><td>uvicorn log level</td></tr>
-  <tr><td><code>HTTPS_ONLY</code></td><td>No</td><td>false</td><td>Set <code>true</code> behind an HTTPS reverse proxy. Marks session cookies <code>Secure</code> and enables trusted proxy header processing. The NixOS module always sets this to <code>true</code>.</td></tr>
-  <tr><td><code>TRUSTED_PROXY_IPS</code></td><td>No</td><td>*</td><td>Comma-separated IPs (or <code>*</code>) allowed to set <code>X-Forwarded-*</code> headers. Default <code>*</code> is safe for LAN deployments behind a physical firewall.</td></tr>
-</table>
+    <h2>Configuration (Environment Variables)</h2>
+    <figure><table>
+      <thead><tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>DATA_DIR</code></td><td>Yes</td><td>—</td><td>Directory for ytdlfin.db. Back this up.</td></tr>
+        <tr><td><code>STAGING_DIR</code></td><td>No</td><td><code>{DATA_DIR}/staging</code></td><td>Temp dir for in-progress downloads. Keep on same filesystem as Jellyfin library.</td></tr>
+        <tr><td><code>SECRET_KEY</code></td><td>Yes</td><td>—</td><td>32+ random chars for session signing</td></tr>
+        <tr><td><code>OIDC_ISSUER_URL</code></td><td>Yes</td><td>—</td><td>PocketID base URL</td></tr>
+        <tr><td><code>OIDC_CLIENT_ID</code></td><td>Yes</td><td>—</td><td>OIDC client ID</td></tr>
+        <tr><td><code>OIDC_CLIENT_SECRET</code></td><td>Yes</td><td>—</td><td>OIDC client secret (in environmentFile)</td></tr>
+        <tr><td><code>OIDC_REDIRECT_URI</code></td><td>Yes</td><td>—</td><td>Full callback URL, e.g. https://ytdlfin.example.com/auth/callback</td></tr>
+        <tr><td><code>ADMIN_GROUP</code></td><td>Yes</td><td>—</td><td>PocketID group name for admin access</td></tr>
+        <tr><td><code>USER_GROUP</code></td><td>Yes</td><td>—</td><td>PocketID group name for regular user access</td></tr>
+        <tr><td><code>PORT</code></td><td>No</td><td>8000</td><td>HTTP listen port</td></tr>
+        <tr><td><code>LOG_LEVEL</code></td><td>No</td><td>info</td><td>uvicorn log level</td></tr>
+        <tr><td><code>HTTPS_ONLY</code></td><td>No</td><td>false</td><td>Set <code>true</code> behind an HTTPS reverse proxy. Marks session cookies <code>Secure</code> and enables trusted proxy header processing. The NixOS module always sets this to <code>true</code>.</td></tr>
+        <tr><td><code>TRUSTED_PROXY_IPS</code></td><td>No</td><td>*</td><td>Comma-separated IPs (or <code>*</code>) allowed to set <code>X-Forwarded-*</code> headers. Default <code>*</code> is safe for LAN deployments behind a physical firewall.</td></tr>
+      </tbody>
+    </table></figure>
 
-<h2>NixOS Module</h2>
-<p>The module is exported as <code>nixosModules.default</code>. Add it to your host
-flake's <code>modules</code> list, then configure the service separately:</p>
-<pre># flake.nix
-inputs.ytdlfin.url = "github:genebean/ytdlfin";
+    <h2>NixOS Module</h2>
+    <p>The module is exported as <code>nixosModules.default</code>. Add it to your host
+    flake's <code>modules</code> list, then configure the service separately:</p>
+    <pre># flake.nix
+inputs.ytdlfin = {
+  url = "github:genebean/ytdlfin";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
 
 nixosConfigurations.yourhost = nixpkgs.lib.nixosSystem {
   modules = [
@@ -267,7 +347,7 @@ nixosConfigurations.yourhost = nixpkgs.lib.nixosSystem {
     ./hosts/yourhost/configuration.nix
   ];
 };</pre>
-<pre># configuration.nix (or a dedicated service file)
+    <pre># configuration.nix (or a dedicated service file)
 services.ytdlfin = {
   enable = true;
   user  = config.services.jellyfin.user;   # share Jellyfin's identity for library writes
@@ -283,67 +363,110 @@ services.ytdlfin = {
   };
 };</pre>
 
-<h2>NixOS Module Options</h2>
-<table>
-  <tr><th>Option</th><th>Default</th><th>Description</th></tr>
-  <tr><td><code>services.ytdlfin.enable</code></td><td>false</td><td>Enable the service</td></tr>
-  <tr><td><code>services.ytdlfin.port</code></td><td>8000</td><td>HTTP port</td></tr>
-  <tr><td><code>services.ytdlfin.dataDir</code></td><td>/var/lib/ytdlfin</td><td>DB directory (back this up)</td></tr>
-  <tr><td><code>services.ytdlfin.stagingDir</code></td><td>/var/lib/ytdlfin/staging</td><td>Override to same FS as Jellyfin library</td></tr>
-  <tr><td><code>services.ytdlfin.user</code></td><td>ytdlfin</td><td>Set to jellyfin user to share library access</td></tr>
-  <tr><td><code>services.ytdlfin.group</code></td><td>ytdlfin</td><td>Set to jellyfin group to share library access</td></tr>
-  <tr><td><code>services.ytdlfin.environmentFile</code></td><td>required</td><td>Path to secrets file (SECRET_KEY, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET)</td></tr>
-  <tr><td><code>services.ytdlfin.settings.oidcIssuerUrl</code></td><td>required</td><td>PocketID base URL</td></tr>
-  <tr><td><code>services.ytdlfin.settings.oidcRedirectUri</code></td><td>required</td><td>Full callback URL</td></tr>
-  <tr><td><code>services.ytdlfin.settings.oidcAdminGroup</code></td><td>required</td><td>PocketID group name for admin access</td></tr>
-  <tr><td><code>services.ytdlfin.settings.oidcUserGroup</code></td><td>required</td><td>PocketID group name for regular user access</td></tr>
-  <tr><td><code>services.ytdlfin.settings.mediaDirectories</code></td><td>[]</td><td>Jellyfin library paths needing write access</td></tr>
-  <tr><td><code>services.ytdlfin.settings.logLevel</code></td><td>info</td><td>uvicorn log level</td></tr>
-  <tr><td><code>services.ytdlfin.settings.trustedProxyIps</code></td><td>*</td><td>IPs allowed to set <code>X-Forwarded-*</code> headers. <code>*</code> trusts all upstream proxies (safe for LAN behind a firewall). Set to <code>127.0.0.1</code> if nginx is on the same host.</td></tr>
-</table>
+    <h2>NixOS Module Options</h2>
+    <figure><table>
+      <thead><tr><th>Option</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>services.ytdlfin.enable</code></td><td>false</td><td>Enable the service</td></tr>
+        <tr><td><code>services.ytdlfin.port</code></td><td>8000</td><td>HTTP port</td></tr>
+        <tr><td><code>services.ytdlfin.dataDir</code></td><td>/var/lib/ytdlfin</td><td>DB directory (back this up)</td></tr>
+        <tr><td><code>services.ytdlfin.stagingDir</code></td><td>/var/lib/ytdlfin/staging</td><td>Override to same FS as Jellyfin library</td></tr>
+        <tr><td><code>services.ytdlfin.user</code></td><td>ytdlfin</td><td>Set to jellyfin user to share library access</td></tr>
+        <tr><td><code>services.ytdlfin.group</code></td><td>ytdlfin</td><td>Set to jellyfin group to share library access</td></tr>
+        <tr><td><code>services.ytdlfin.environmentFile</code></td><td>required</td><td>Path to secrets file (SECRET_KEY, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET)</td></tr>
+        <tr><td><code>services.ytdlfin.settings.oidcIssuerUrl</code></td><td>required</td><td>PocketID base URL</td></tr>
+        <tr><td><code>services.ytdlfin.settings.oidcRedirectUri</code></td><td>required</td><td>Full callback URL</td></tr>
+        <tr><td><code>services.ytdlfin.settings.oidcAdminGroup</code></td><td>required</td><td>PocketID group name for admin access</td></tr>
+        <tr><td><code>services.ytdlfin.settings.oidcUserGroup</code></td><td>required</td><td>PocketID group name for regular user access</td></tr>
+        <tr><td><code>services.ytdlfin.settings.mediaDirectories</code></td><td>[]</td><td>Jellyfin library paths needing write access</td></tr>
+        <tr><td><code>services.ytdlfin.settings.logLevel</code></td><td>info</td><td>uvicorn log level</td></tr>
+        <tr><td><code>services.ytdlfin.settings.trustedProxyIps</code></td><td>*</td><td>IPs allowed to set <code>X-Forwarded-*</code> headers. <code>*</code> trusts all upstream proxies (safe for LAN behind a firewall). Set to <code>127.0.0.1</code> if nginx is on the same host.</td></tr>
+      </tbody>
+    </table></figure>
 
-<h2>Decision Log</h2>
-<dl>
-  <dt>Serial download queue (no concurrency)</dt>
-  <dd>Intentional — avoids rate limits. A single <code>asyncio.Queue</code> processed by
-  one background task keeps the implementation simple and the load on the source site low.</dd>
+    <h2>Decision Log</h2>
+    <dl>
+      <dt>Serial download queue (no concurrency)</dt>
+      <dd>Intentional — avoids rate limits. A single <code>asyncio.Queue</code> processed by
+      one background task keeps the implementation simple and the load on the source site low.</dd>
 
-  <dt>SQLite default journal mode (not WAL)</dt>
-  <dd>Single writer means WAL offers no benefit. Default mode produces no sidecar files,
-  so restic can snapshot the DB file at any time without extra configuration.</dd>
+      <dt>Manual queue start</dt>
+      <dd>Downloads do not begin automatically after being queued. The user clicks "Start
+      downloads" which calls <code>POST /api/queue/start</code>, enqueuing all pending items
+      for the worker. This gives users a chance to review and reorder before committing.</dd>
 
-  <dt>Staging + atomic move</dt>
-  <dd>Downloads are assembled in a staging directory and renamed into the final location
-  only when all files (MP4, NFO, poster) are ready. This prevents Jellyfin from picking up
-  partial downloads during its library scan.</dd>
+      <dt>SQLite default journal mode (not WAL)</dt>
+      <dd>Single writer means WAL offers no benefit. Default mode produces no sidecar files,
+      so restic can snapshot the DB file at any time without extra configuration.</dd>
 
-  <dt>yt-dlp as Python library, not subprocess</dt>
-  <dd>Avoids subprocess overhead and makes progress hooks and error introspection easier.
-  The yt-dlp binary is still available in the dev shell for manual testing.</dd>
+      <dt>Staging + atomic move</dt>
+      <dd>Downloads are assembled in a staging directory and renamed into the final location
+      only when all files (MP4, NFO, poster) are ready. This prevents Jellyfin from picking up
+      partial downloads during its library scan.</dd>
 
-  <dt>No migrations framework</dt>
-  <dd><code>CREATE TABLE IF NOT EXISTS</code> on startup is sufficient for v1. If the schema
-  needs to change, add a manual migration step in the release notes.</dd>
+      <dt>yt-dlp as Python library, not subprocess</dt>
+      <dd>Avoids subprocess overhead and makes progress hooks and error introspection easier.
+      The yt-dlp binary is still available in the dev shell for manual testing.</dd>
 
-  <dt>Group-based access control (not email allowlist)</dt>
-  <dd>Access is gated by PocketID group membership (<code>ADMIN_GROUP</code> /
-  <code>USER_GROUP</code>) rather than a hardcoded email list. Groups are managed in
-  PocketID and resolved at login via the <code>groups</code> OIDC scope; the result is
-  stored in the session so no per-request lookups are needed. Fails closed: a user not in
-  either group is denied even after a successful PocketID login.</dd>
+      <dt>No migrations framework</dt>
+      <dd><code>CREATE TABLE IF NOT EXISTS</code> on startup is sufficient for v1. If the schema
+      needs to change, add a manual migration step in the release notes.</dd>
 
-  <dt>CDN with SRI hashes (Pico CSS, HTMX)</dt>
-  <dd>No build step. Both resources are pinned to exact versions with SHA-384 integrity
-  hashes computed from the actual CDN content. Update the hashes whenever versions change.</dd>
+      <dt>Group-based access control (not email allowlist)</dt>
+      <dd>Access is gated by PocketID group membership (<code>ADMIN_GROUP</code> /
+      <code>USER_GROUP</code>) rather than a hardcoded email list. Groups are managed in
+      PocketID and resolved at login via the <code>groups</code> OIDC scope; the result is
+      stored in the session so no per-request lookups are needed. Fails closed: a user not in
+      either group is denied even after a successful PocketID login.</dd>
 
-  <dt>Reverse proxy headers trusted from all IPs by default</dt>
-  <dd>The primary deployment target is a LAN environment where a physical firewall
-  controls perimeter access and only port 443 is exposed externally. Trusting
-  <code>X-Forwarded-*</code> from all upstream IPs (<code>TRUSTED_PROXY_IPS=*</code>)
-  is safe in this context and avoids per-deployment IP configuration. Operators who
-  need stricter trust (e.g. nginx on the same host) can set
-  <code>services.ytdlfin.settings.trustedProxyIps = "127.0.0.1"</code>.</dd>
-</dl>
+      <dt>CDN with SRI hashes (Pico CSS, HTMX)</dt>
+      <dd>No build step. Both resources are pinned to exact versions with SHA-384 integrity
+      hashes computed from the actual CDN content. Update the hashes whenever versions change.</dd>
 
+      <dt>Reverse proxy headers trusted from all IPs by default</dt>
+      <dd>The primary deployment target is a LAN environment where a physical firewall
+      controls perimeter access and only port 443 is exposed externally. Trusting
+      <code>X-Forwarded-*</code> from all upstream IPs (<code>TRUSTED_PROXY_IPS=*</code>)
+      is safe in this context and avoids per-deployment IP configuration. Operators who
+      need stricter trust (e.g. nginx on the same host) can set
+      <code>services.ytdlfin.settings.trustedProxyIps = "127.0.0.1"</code>.</dd>
+    </dl>
+  </main>
+
+  <footer class="container">
+    <a href="https://github.com/genebean/ytdlfin" target="_blank" rel="noopener">ytdlfin on GitHub</a>
+  </footer>
+
+  <script>
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      var btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+    function toggleTheme() {
+      var current = document.documentElement.getAttribute('data-theme');
+      var next = current === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('ytdlfin-theme', next);
+      applyTheme(next);
+    }
+    function toggleNav() {
+      var links = document.getElementById('nav-links');
+      var btn = document.getElementById('nav-toggle');
+      var open = links.classList.toggle('open');
+      btn.setAttribute('aria-expanded', String(open));
+    }
+    document.addEventListener('click', function (e) {
+      var links = document.getElementById('nav-links');
+      var toggle = document.getElementById('nav-toggle');
+      if (links && toggle && !links.contains(e.target) && !toggle.contains(e.target)) {
+        links.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+    applyTheme(document.documentElement.getAttribute('data-theme') || 'light');
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+      if (!localStorage.getItem('ytdlfin-theme')) applyTheme(e.matches ? 'dark' : 'light');
+    });
+  </script>
 </body>
 </html>
