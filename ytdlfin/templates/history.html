@@ -34,7 +34,7 @@
         <td class="wrap">
           {% if dl.title %}
             {{ dl.title }}{% if dl.video_id %} [{{ dl.video_id }}]{% endif %}
-            {% if dl.status == 'done' and dl.final_path %}
+            {% if dl.status == 'done' and dl.final_path and user.is_admin %}
               <br />
               <details>
                 <summary class="path-summary">📁 saved path</summary>

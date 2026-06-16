@@ -56,6 +56,14 @@ TRUSTED_PROXY_IPS = os.environ.get("TRUSTED_PROXY_IPS", "127.0.0.1")
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
+
+# Allowed base paths for category directories. When set, _validate_path
+# rejects any path that doesn't resolve inside one of these prefixes.
+# Colon-separated; empty means no containment check (local dev).
+_raw_media_dirs = os.environ.get("MEDIA_DIRECTORIES", "")
+MEDIA_DIRECTORIES: list[Path] = [
+    Path(p).resolve() for p in _raw_media_dirs.split(":") if p.strip()
+]
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
@@ -588,13 +596,15 @@ def _validate_url_scheme(url: str) -> bool:
 
 
 def _validate_path(path: str) -> None:
-    """Raise HTTP 400 if path does not exist or is not writable."""
-    import os
-    if not os.path.isdir(path) or not os.access(path, os.W_OK):
-        raise HTTPException(
-            400,
-            f"Path does not exist or is not writable: {path}",
-        )
+    """Raise HTTP 400 if path is not a writable directory inside MEDIA_DIRECTORIES."""
+    resolved = Path(path).resolve()
+    if not resolved.is_dir() or not os.access(resolved, os.W_OK):
+        raise HTTPException(400, "Path does not exist or is not writable.")
+    if MEDIA_DIRECTORIES and not any(
+        resolved == allowed or resolved.is_relative_to(allowed)
+        for allowed in MEDIA_DIRECTORIES
+    ):
+        raise HTTPException(400, "Path is not within an allowed media directory.")
 
 
 async def _parse_category(request: Request) -> "CategoryCreate":
