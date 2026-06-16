@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from .. import db as database
 from ..auth import require_admin
+from ..db import get_db
 from ..utils import _parse_category, _validate_path, templates
 
 router = APIRouter()
@@ -15,13 +17,17 @@ router = APIRouter()
 # ── JSON API: categories ──────────────────────────────────────────────────────
 
 @router.get("/api/categories")
-async def api_list_categories(request: Request, user=Depends(require_admin)):
-    return await database.list_categories(request.app.state.db)
+async def api_list_categories(
+    conn: aiosqlite.Connection = Depends(get_db),
+    user=Depends(require_admin),
+):
+    return await database.list_categories(conn)
 
 
 @router.post("/api/categories")
 async def api_create_category(
     request: Request,
+    conn: aiosqlite.Connection = Depends(get_db),
     user=Depends(require_admin),
 ):
     """
@@ -40,7 +46,7 @@ async def api_create_category(
 
     try:
         cat = await database.create_category(
-            request.app.state.db, payload.name, payload.path, payload.description
+            conn, payload.name, payload.path, payload.description
         )
     except Exception as exc:
         msg = (
@@ -53,7 +59,7 @@ async def api_create_category(
         raise HTTPException(400, msg)
 
     if is_htmx:
-        cats = await database.list_categories(request.app.state.db)
+        cats = await database.list_categories(conn)
         return templates.TemplateResponse(
             request,
             "partials/category_list.html",
@@ -66,6 +72,7 @@ async def api_create_category(
 async def api_update_category(
     category_id: int,
     request: Request,
+    conn: aiosqlite.Connection = Depends(get_db),
     user=Depends(require_admin),
 ):
     """
@@ -79,7 +86,7 @@ async def api_update_category(
         _validate_path(payload.path)
     except HTTPException as exc:
         if is_htmx:
-            cat = await database.get_category(request.app.state.db, category_id)
+            cat = await database.get_category(conn, category_id)
             return templates.TemplateResponse(
                 request,
                 "partials/category_edit_row.html",
@@ -89,7 +96,7 @@ async def api_update_category(
         raise
 
     cat = await database.update_category(
-        request.app.state.db,
+        conn,
         category_id,
         payload.name,
         payload.path,
@@ -111,13 +118,13 @@ async def api_update_category(
 async def api_delete_category(
     category_id: int,
     request: Request,
+    conn: aiosqlite.Connection = Depends(get_db),
     user=Depends(require_admin),
 ):
     """
     Deletes a category. Returns empty HTML for HTMX (removes the row); JSON otherwise.
     """
     is_htmx = request.headers.get("HX-Request") == "true"
-    conn = request.app.state.db
 
     if await database.category_has_active_downloads(conn, category_id):
         msg = "Category has pending or active downloads; cancel them first"
@@ -144,8 +151,12 @@ async def api_delete_category(
 # ── HTMX partials: admin category management ──────────────────────────────────
 
 @router.get("/partials/categories", response_class=HTMLResponse)
-async def partial_category_list(request: Request, user=Depends(require_admin)):
-    cats = await database.list_categories(request.app.state.db)
+async def partial_category_list(
+    request: Request,
+    conn: aiosqlite.Connection = Depends(get_db),
+    user=Depends(require_admin),
+):
+    cats = await database.list_categories(conn)
     return templates.TemplateResponse(
         request,
         "partials/category_list.html",
@@ -155,9 +166,12 @@ async def partial_category_list(request: Request, user=Depends(require_admin)):
 
 @router.get("/partials/categories/{category_id}", response_class=HTMLResponse)
 async def partial_category_row(
-    category_id: int, request: Request, user=Depends(require_admin)
+    category_id: int,
+    request: Request,
+    conn: aiosqlite.Connection = Depends(get_db),
+    user=Depends(require_admin),
 ):
-    cat = await database.get_category(request.app.state.db, category_id)
+    cat = await database.get_category(conn, category_id)
     if not cat:
         raise HTTPException(404)
     return templates.TemplateResponse(
@@ -169,9 +183,12 @@ async def partial_category_row(
 
 @router.get("/partials/categories/{category_id}/edit", response_class=HTMLResponse)
 async def partial_category_edit(
-    category_id: int, request: Request, user=Depends(require_admin)
+    category_id: int,
+    request: Request,
+    conn: aiosqlite.Connection = Depends(get_db),
+    user=Depends(require_admin),
 ):
-    cat = await database.get_category(request.app.state.db, category_id)
+    cat = await database.get_category(conn, category_id)
     if not cat:
         raise HTTPException(404)
     return templates.TemplateResponse(

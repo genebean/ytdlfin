@@ -1,5 +1,6 @@
 """HTTP integration tests for page, download, and category routes."""
 
+import aiosqlite
 import pytest
 
 
@@ -500,9 +501,12 @@ def test_partials_queue_row_edit_non_pending_returns_409(admin_client, tmp_path)
     cat_id = _make_cat(admin_client, cat_dir)
     dl_id = _make_dl(admin_client, cat_id)
 
-    # Force status to done directly in the DB
-    db = admin_client.app.state.db
-    asyncio.run(database_module.set_download_done(db, dl_id, "/done"))
+    # Force status to done directly in the DB (no shared app.state.db; open our own)
+    async def _mark_done():
+        async with aiosqlite.connect(str(database_module.DB_PATH)) as conn:
+            conn.row_factory = aiosqlite.Row
+            await database_module.set_download_done(conn, dl_id, "/done")
+    asyncio.run(_mark_done())
 
     resp = admin_client.get(f"/partials/queue/{dl_id}/edit")
     assert resp.status_code == 409
@@ -564,8 +568,11 @@ def test_cancel_download_non_pending_returns_409(admin_client, tmp_path):
     cat_id = _make_cat(admin_client, cat_dir)
     dl_id = _make_dl(admin_client, cat_id)
 
-    db = admin_client.app.state.db
-    asyncio.run(database_module.set_download_done(db, dl_id, "/done"))
+    async def _mark_done():
+        async with aiosqlite.connect(str(database_module.DB_PATH)) as conn:
+            conn.row_factory = aiosqlite.Row
+            await database_module.set_download_done(conn, dl_id, "/done")
+    asyncio.run(_mark_done())
 
     resp = admin_client.delete(f"/api/downloads/{dl_id}")
     assert resp.status_code == 409

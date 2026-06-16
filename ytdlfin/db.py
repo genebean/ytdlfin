@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
@@ -57,6 +58,24 @@ async def open_db() -> aiosqlite.Connection:
     db = await aiosqlite.connect(str(DB_PATH))
     db.row_factory = aiosqlite.Row
     return db
+
+
+async def get_db() -> AsyncIterator[aiosqlite.Connection]:
+    """
+    FastAPI dependency: yields a fresh DB connection scoped to the request.
+
+    Each request gets its own aiosqlite connection (and its own background
+    thread), so concurrent read requests don't queue behind each other.
+    The download worker uses a separate long-lived connection (see main.py).
+
+    Note: SQLite default journal mode serialises writes at the file level, so
+    concurrent writes still block each other briefly at commit time. This is
+    intentional — WAL mode is excluded to keep the DB file self-contained for
+    restic snapshots.
+    """
+    async with aiosqlite.connect(str(DB_PATH)) as conn:
+        conn.row_factory = aiosqlite.Row
+        yield conn
 
 
 async def init_schema(db: aiosqlite.Connection) -> None:

@@ -53,18 +53,18 @@ async def lifespan(app: FastAPI):
     database.DATA_DIR.mkdir(parents=True, exist_ok=True)
     STAGING_DIR.mkdir(parents=True, exist_ok=True)
 
-    conn = await database.open_db()
-    await database.init_schema(conn)
+    # Dedicated connection for the download worker — lives for the app lifetime.
+    # Request handlers open their own per-request connections via the get_db dependency.
+    worker_conn = await database.open_db()
+    await database.init_schema(worker_conn)
 
     await recover_staging()
-    await database.reset_interrupted_downloads(conn)
+    await database.reset_interrupted_downloads(worker_conn)
 
     queue: asyncio.Queue[int] = asyncio.Queue()
-
-    app.state.db = conn
     app.state.queue = queue
 
-    worker_task = asyncio.create_task(download_worker(conn, queue))
+    worker_task = asyncio.create_task(download_worker(worker_conn, queue))
 
     yield
 
@@ -73,7 +73,7 @@ async def lifespan(app: FastAPI):
         await worker_task
     except asyncio.CancelledError:
         pass
-    await conn.close()
+    await worker_conn.close()
 
 
 # ── App factory ───────────────────────────────────────────────────────────────
