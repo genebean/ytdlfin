@@ -6,6 +6,15 @@ import re
 
 from pydantic import BaseModel, field_validator
 
+_QUALITY_RE = re.compile(r"^\d+p$")
+
+
+def normalize_quality(q: str) -> str:
+    """Return q if valid ('best' or e.g. '1080p'), else '1080p'."""
+    if q == "best" or _QUALITY_RE.match(q):
+        return q
+    return "1080p"
+
 
 class DownloadRequest(BaseModel):
     url: str
@@ -16,9 +25,7 @@ class DownloadRequest(BaseModel):
     @field_validator("quality")
     @classmethod
     def validate_quality(cls, v: str) -> str:
-        if v == "best" or re.match(r"^\d+p$", v):
-            return v
-        return "1080p"
+        return normalize_quality(v)
 
 
 class CategoryCreate(BaseModel):
@@ -27,7 +34,5 @@ class CategoryCreate(BaseModel):
     description: str | None = None
 
 
-class CategoryUpdate(BaseModel):
-    name: str
-    path: str
-    description: str | None = None
+class CategoryUpdate(CategoryCreate):
+    pass

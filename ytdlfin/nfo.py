@@ -35,7 +35,7 @@ def generate_nfo(info: dict, display_title: str) -> str:
     _sub(movie, "studio", channel)
 
     video_id = info.get("id", "")
-    extractor = info.get("extractor_key", "generic").lower()
+    extractor = (info.get("extractor_key") or "generic").lower()
     uid = ET.SubElement(movie, "uniqueid", type=extractor, default="true")
     uid.text = video_id
     _sub(movie, "id", video_id)

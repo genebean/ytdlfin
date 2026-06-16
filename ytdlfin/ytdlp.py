@@ -150,7 +150,7 @@ async def download_async(
     on_progress=None,
 ) -> Path:
     """Async wrapper — runs the blocking yt-dlp call in the default executor."""
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         None,
         lambda: run_download(

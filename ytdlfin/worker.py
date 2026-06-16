@@ -41,7 +41,7 @@ async def process_download(conn: aiosqlite.Connection, record: dict) -> None:
         await database.set_download_downloading(conn, download_id)
 
         # Step 1: Extract metadata without downloading.
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         info = await loop.run_in_executor(None, lambda: extract_info(url))
 
         yt_title = info["title"]

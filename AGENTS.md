@@ -60,14 +60,29 @@ ytdlfin/
 ├── flake.nix               # devShell + buildPythonApplication + nixosModules.default
 ├── pyproject.toml          # hatchling build, dependencies, entry point
 ├── ytdlfin/
-│   ├── main.py             # FastAPI app factory, lifespan, middleware, all routes
+│   ├── main.py             # FastAPI app factory, lifespan, middleware, exception handlers
 │   ├── auth.py             # OIDC flow, session helpers, dependencies
 │   ├── db.py               # aiosqlite helpers, schema, all CRUD
-│   ├── models.py           # Pydantic models
+│   ├── models.py           # Pydantic models + normalize_quality()
+│   ├── utils.py            # Shared: templates, _render, _validate_*, _parse_category,
+│   │                       #   _execute_create_download, MEDIA_DIRECTORIES
+│   ├── routers/
+│   │   ├── pages.py        # HTML page routes: /, /history, /admin, /auth/denied, /downloads
+│   │   ├── downloads.py    # Queue HTMX partials + JSON API: /api/queue*, /api/downloads*, /partials/queue/*
+│   │   └── categories.py   # Category CRUD + HTMX partials: /api/categories*, /partials/categories/*
 │   ├── worker.py           # asyncio download queue + process_download
 │   ├── ytdlp.py            # yt-dlp wrapper (extract_info, download, staging logic)
 │   ├── nfo.py              # NFO XML generation
 │   └── templates/          # Jinja2 templates (base, page, HTMX partials)
+├── tests/
+│   ├── conftest.py         # Env setup, db fixture, user_client/admin_client fixtures
+│   ├── test_db.py          # DB CRUD, state transitions, pagination
+│   ├── test_models.py      # normalize_quality, DownloadRequest, CategoryUpdate
+│   ├── test_nfo.py         # NFO XML generation
+│   ├── test_routes.py      # HTTP integration tests (JSON + HTMX paths)
+│   ├── test_utils.py       # URL scheme + path validation
+│   ├── test_worker.py      # Worker orchestration (mocks extract_info + download_async)
+│   └── test_ytdlp.py       # Format constants and selection logic
 ├── nix/
 │   └── module.nix          # NixOS service module
 └── docs/                   # HTML documentation (no generators, no build step)
@@ -181,6 +196,34 @@ architecture, data model, API, or module options.
 
 ---
 
+## Testing
+
+The test suite lives in `tests/` and runs under the Nix dev shell:
+
+```
+nix develop --command pytest tests/ -v
+```
+
+**Run tests before every commit.** If tests fail, fix them before committing —
+don't commit broken tests and intend to fix them later.
+
+**Write tests for new code whenever practical.** New routes, DB helpers, models,
+and utility functions should come with tests in the same commit. Prefer unit tests
+for pure logic (models, nfo, ytdlp format selection) and integration tests via
+`TestClient` for routes. Use the existing conftest fixtures (`db`, `user_client`,
+`admin_client`) for consistency.
+
+Test files map to source modules:
+- `test_db.py` → `db.py`
+- `test_models.py` → `models.py`
+- `test_nfo.py` → `nfo.py`
+- `test_routes.py` → `routers/`
+- `test_utils.py` → `utils.py`
+- `test_worker.py` → `worker.py`
+- `test_ytdlp.py` → `ytdlp.py`
+
+---
+
 ## Commit and PR hygiene
 
 - Commit messages describe what the code **is**, not what changed. Include a body
@@ -194,7 +237,8 @@ architecture, data model, API, or module options.
 
 ## Pre-push checklist
 
-1. `pre-commit run --all-files` — catches formatting and dead-code issues fast
-2. `nix build` — if `flake.nix` or `pyproject.toml` changed
-3. Manual smoke test in `nix develop` — start uvicorn, verify the login redirect works
-4. Update `docs/reference/spec.html` if architecture or API changed
+1. `nix develop --command pytest tests/` — all tests must pass before pushing
+2. `pre-commit run --all-files` — catches formatting and dead-code issues fast
+3. `nix build` — if `flake.nix` or `pyproject.toml` changed
+4. Manual smoke test in `nix develop` — start uvicorn, verify the login redirect works
+5. Update `docs/reference/spec.html` if architecture or API changed

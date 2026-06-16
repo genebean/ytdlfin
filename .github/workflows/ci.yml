@@ -23,6 +23,26 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/dependency-review-action@v5.0.0
 
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@v22
+      - uses: DeterminateSystems/magic-nix-cache-action@v14
+      - name: run tests
+        run: nix develop --command pytest tests/ -v --junitxml=pytest-results.xml
+      - name: publish test results
+        uses: dorny/test-reporter@v2
+        if: always()
+        with:
+          name: pytest results
+          path: pytest-results.xml
+          reporter: java-junit
+
   nix-build:
     name: nix build
     runs-on: ubuntu-latest
