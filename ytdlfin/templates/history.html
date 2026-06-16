@@ -59,8 +59,8 @@
         <td>{{ dl.category_name }}</td>
         <td>{{ dl.quality }}</td>
         <td>{{ dl.requested_by_name }}</td>
-        <td><small>{{ dl.requested_at[:16] if dl.requested_at else '—' }}</small></td>
-        <td><small>{{ dl.completed_at[:16] if dl.completed_at else '—' }}</small></td>
+        <td><small>{{ dl.requested_at | format_dt }}</small></td>
+        <td><small>{{ dl.completed_at | format_dt }}</small></td>
       </tr>
       {% endfor %}
     </tbody>

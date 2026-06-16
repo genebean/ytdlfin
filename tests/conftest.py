@@ -92,6 +92,7 @@ def _make_client(tmp_path, monkeypatch, user: dict):
 
     monkeypatch.setattr(db_module, "DATA_DIR", tmp_path)
     monkeypatch.setattr(db_module, "DB_PATH", tmp_path / "ytdlfin.db")
+    monkeypatch.setattr(db_module, "_categories_cache", None)
 
     app = create_app()
     app.dependency_overrides[get_current_user] = lambda: user

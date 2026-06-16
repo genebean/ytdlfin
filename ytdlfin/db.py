@@ -47,6 +47,15 @@ CREATE TABLE IF NOT EXISTS downloads (
 );
 """
 
+_CREATE_INDEXES = """
+CREATE INDEX IF NOT EXISTS idx_downloads_status
+    ON downloads(status);
+CREATE INDEX IF NOT EXISTS idx_downloads_url_status
+    ON downloads(url, status);
+CREATE INDEX IF NOT EXISTS idx_downloads_requested_at
+    ON downloads(requested_at DESC);
+"""
+
 
 def _row(row: aiosqlite.Row | None) -> dict | None:
     """Convert an aiosqlite.Row to a plain dict, or return None."""
@@ -79,21 +88,36 @@ async def get_db() -> AsyncIterator[aiosqlite.Connection]:
 
 
 async def init_schema(db: aiosqlite.Connection) -> None:
-    """Create tables on first run. Safe to call repeatedly."""
+    """Create tables and indexes on first run. Safe to call repeatedly."""
     # Explicit DELETE mode (the default) keeps backup simple: no -wal/-shm sidecar files.
     await db.execute("PRAGMA journal_mode=DELETE")
     await db.execute(_CREATE_CATEGORIES)
     await db.execute(_CREATE_DOWNLOADS)
+    for stmt in _CREATE_INDEXES.strip().split(";"):
+        stmt = stmt.strip()
+        if stmt:
+            await db.execute(stmt)
     await db.commit()
 
 
 # ── Categories ──────────────────────────────────────────────────────────────
 
+_categories_cache: list[dict] | None = None
+
+
+def _invalidate_categories() -> None:
+    global _categories_cache
+    _categories_cache = None
+
 
 async def list_categories(db: aiosqlite.Connection) -> list[dict]:
+    global _categories_cache
+    if _categories_cache is not None:
+        return _categories_cache
     async with db.execute("SELECT * FROM categories ORDER BY name") as cur:
         rows = await cur.fetchall()
-    return [dict(r) for r in rows]
+    _categories_cache = [dict(r) for r in rows]
+    return _categories_cache
 
 
 async def get_category(db: aiosqlite.Connection, category_id: int) -> dict | None:
@@ -113,6 +137,7 @@ async def create_category(
     ) as cur:
         row = await cur.fetchone()
     await db.commit()
+    _invalidate_categories()
     return dict(row)
 
 
@@ -130,6 +155,7 @@ async def update_category(
     ) as cur:
         row = await cur.fetchone()
     await db.commit()
+    _invalidate_categories()
     return _row(row)
 
 
@@ -140,6 +166,7 @@ async def delete_category(db: aiosqlite.Connection, category_id: int) -> bool:
     ) as cur:
         row = await cur.fetchone()
     await db.commit()
+    _invalidate_categories()
     return row is not None
 
 

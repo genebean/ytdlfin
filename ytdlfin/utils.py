@@ -16,6 +16,7 @@ from .models import CategoryCreate
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+templates.env.filters["format_dt"] = lambda v: v[:16] if v else "—"
 
 _raw_media_dirs = os.environ.get("MEDIA_DIRECTORIES", "")
 MEDIA_DIRECTORIES: list[Path] = [
