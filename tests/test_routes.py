@@ -318,3 +318,286 @@ def test_partials_category_list(admin_client):
 def test_partials_category_row_not_found(admin_client):
     resp = admin_client.get("/partials/categories/9999")
     assert resp.status_code == 404
+
+
+# ── HTMX mode: categories ─────────────────────────────────────────────────────
+
+HTMX = {"HX-Request": "true"}
+
+
+def _make_cat(client, path):
+    """Create a category and return its id."""
+    return client.post("/api/categories", json={"name": "Movies", "path": str(path)}).json()["id"]
+
+
+def test_htmx_create_category_returns_html_list(admin_client, tmp_path):
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    resp = admin_client.post(
+        "/api/categories",
+        data={"name": "Movies", "path": str(cat_dir)},
+        headers=HTMX,
+    )
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+    assert "Movies" in resp.text
+
+
+def test_htmx_create_category_invalid_path_returns_error_html(admin_client):
+    resp = admin_client.post(
+        "/api/categories",
+        data={"name": "Movies", "path": "/nonexistent/path"},
+        headers=HTMX,
+    )
+    assert resp.status_code == 200  # HTMX errors stay 200 so the swap triggers
+    assert "not exist" in resp.text.lower() or "writable" in resp.text.lower()
+
+
+def test_htmx_create_category_duplicate_name_returns_error_html(admin_client, tmp_path):
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    admin_client.post("/api/categories", json={"name": "Movies", "path": str(cat_dir)})
+    resp = admin_client.post(
+        "/api/categories",
+        data={"name": "Movies", "path": str(cat_dir)},
+        headers=HTMX,
+    )
+    assert resp.status_code == 200
+    assert "already exists" in resp.text.lower()
+
+
+def test_htmx_update_category_returns_html_row(admin_client, tmp_path):
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    new_dir = tmp_path / "films"
+    new_dir.mkdir()
+    cat_id = _make_cat(admin_client, cat_dir)
+
+    resp = admin_client.put(
+        f"/api/categories/{cat_id}",
+        data={"name": "Films", "path": str(new_dir)},
+        headers=HTMX,
+    )
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+    assert "Films" in resp.text
+
+
+def test_htmx_update_category_invalid_path_returns_edit_row(admin_client, tmp_path):
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    cat_id = _make_cat(admin_client, cat_dir)
+
+    resp = admin_client.put(
+        f"/api/categories/{cat_id}",
+        data={"name": "Movies", "path": "/nonexistent"},
+        headers=HTMX,
+    )
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+    # Should render the edit form with an inline error, not just plain text
+    assert "input" in resp.text.lower() or "form" in resp.text.lower()
+
+
+def test_htmx_delete_category_returns_empty_body(admin_client, tmp_path):
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    cat_id = _make_cat(admin_client, cat_dir)
+
+    resp = admin_client.delete(f"/api/categories/{cat_id}", headers=HTMX)
+    assert resp.status_code == 200
+    assert resp.text == ""
+
+
+def test_htmx_delete_category_with_active_downloads_returns_row(admin_client, tmp_path):
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    cat_id = _make_cat(admin_client, cat_dir)
+    admin_client.post(
+        "/api/downloads",
+        json={"url": "https://youtube.com/watch?v=active", "category_id": cat_id},
+    )
+
+    resp = admin_client.delete(f"/api/categories/{cat_id}", headers=HTMX)
+    assert resp.status_code == 200
+    # Returns the category row (unchanged) with an error annotation
+    assert "text/html" in resp.headers["content-type"]
+    assert "pending" in resp.text.lower() or "active" in resp.text.lower() or "cancel" in resp.text.lower()
+
+
+# ── HTMX mode: category partials ─────────────────────────────────────────────
+
+
+def test_partials_category_edit_row(admin_client, tmp_path):
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    cat_id = _make_cat(admin_client, cat_dir)
+
+    resp = admin_client.get(f"/partials/categories/{cat_id}/edit")
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+    assert "Movies" in resp.text
+
+
+def test_partials_category_edit_row_not_found(admin_client):
+    resp = admin_client.get("/partials/categories/9999/edit")
+    assert resp.status_code == 404
+
+
+def test_partials_category_row(admin_client, tmp_path):
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    cat_id = _make_cat(admin_client, cat_dir)
+
+    resp = admin_client.get(f"/partials/categories/{cat_id}")
+    assert resp.status_code == 200
+    assert "Movies" in resp.text
+
+
+# ── HTMX mode: queue partials ─────────────────────────────────────────────────
+
+
+def _make_dl(client, cat_id):
+    return client.post(
+        "/api/downloads",
+        json={"url": "https://youtube.com/watch?v=q1", "category_id": cat_id},
+    ).json()["id"]
+
+
+def test_partials_queue_row(admin_client, tmp_path):
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    cat_id = _make_cat(admin_client, cat_dir)
+    dl_id = _make_dl(admin_client, cat_id)
+
+    resp = admin_client.get(f"/partials/queue/{dl_id}")
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+
+
+def test_partials_queue_row_not_found(admin_client):
+    resp = admin_client.get("/partials/queue/9999")
+    assert resp.status_code == 404
+
+
+def test_partials_queue_row_edit(admin_client, tmp_path):
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    cat_id = _make_cat(admin_client, cat_dir)
+    dl_id = _make_dl(admin_client, cat_id)
+
+    resp = admin_client.get(f"/partials/queue/{dl_id}/edit")
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+
+
+def test_partials_queue_row_edit_non_pending_returns_409(admin_client, tmp_path):
+    import ytdlfin.db as database_module
+    import asyncio
+
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    cat_id = _make_cat(admin_client, cat_dir)
+    dl_id = _make_dl(admin_client, cat_id)
+
+    # Force status to done directly in the DB
+    db = admin_client.app.state.db
+    asyncio.run(database_module.set_download_done(db, dl_id, "/done"))
+
+    resp = admin_client.get(f"/partials/queue/{dl_id}/edit")
+    assert resp.status_code == 409
+
+
+# ── HTMX mode: inline download category edit (PATCH) ─────────────────────────
+
+
+def test_patch_download_category(admin_client, tmp_path):
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    tv_dir = tmp_path / "tv"
+    tv_dir.mkdir()
+    cat_id = _make_cat(admin_client, cat_dir)
+    tv_id = admin_client.post(
+        "/api/categories", json={"name": "TV Shows", "path": str(tv_dir)}
+    ).json()["id"]
+    dl_id = _make_dl(admin_client, cat_id)
+
+    resp = admin_client.patch(
+        f"/api/downloads/{dl_id}",
+        data={"category_id": str(tv_id)},
+        headers=HTMX,
+    )
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+    assert "TV Shows" in resp.text
+
+
+def test_patch_download_wrong_user_returns_403(user_client, admin_client, tmp_path):
+    """A regular user cannot edit another user's download."""
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    # Admin creates the download (owned by admin)
+    cat_id = _make_cat(admin_client, cat_dir)
+    dl_id = admin_client.post(
+        "/api/downloads",
+        json={"url": "https://youtube.com/watch?v=admin_dl", "category_id": cat_id},
+    ).json()["id"]
+
+    # user_client is a different user — should be denied
+    resp = user_client.patch(
+        f"/api/downloads/{dl_id}",
+        data={"category_id": str(cat_id)},
+        headers=HTMX,
+    )
+    assert resp.status_code == 403
+
+
+# ── Download cancel edge cases ────────────────────────────────────────────────
+
+
+def test_cancel_download_non_pending_returns_409(admin_client, tmp_path):
+    import ytdlfin.db as database_module
+    import asyncio
+
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    cat_id = _make_cat(admin_client, cat_dir)
+    dl_id = _make_dl(admin_client, cat_id)
+
+    db = admin_client.app.state.db
+    asyncio.run(database_module.set_download_done(db, dl_id, "/done"))
+
+    resp = admin_client.delete(f"/api/downloads/{dl_id}")
+    assert resp.status_code == 409
+
+
+def test_cancel_download_wrong_user_returns_403(user_client, admin_client, tmp_path):
+    """User cannot cancel another user's download."""
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    cat_id = _make_cat(admin_client, cat_dir)
+    dl_id = admin_client.post(
+        "/api/downloads",
+        json={"url": "https://youtube.com/watch?v=others", "category_id": cat_id},
+    ).json()["id"]
+
+    resp = user_client.delete(f"/api/downloads/{dl_id}")
+    assert resp.status_code == 403
+
+
+# ── Queue start with pending items ────────────────────────────────────────────
+
+
+def test_api_queue_start_returns_html(admin_client, tmp_path):
+    """Queue start should return the queue partial HTML (200 with HTML content-type)."""
+    cat_dir = tmp_path / "movies"
+    cat_dir.mkdir()
+    cat_id = _make_cat(admin_client, cat_dir)
+    admin_client.post(
+        "/api/downloads",
+        json={"url": "https://youtube.com/watch?v=q1", "category_id": cat_id},
+    )
+
+    resp = admin_client.post("/api/queue/start")
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]

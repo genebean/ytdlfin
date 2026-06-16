@@ -28,6 +28,13 @@
           yt-dlp
         ];
 
+      # Dev-only Python dependencies (not included in the production package).
+      devPythonDeps =
+        ps: with ps; [
+          pytest
+          pytest-cov
+        ];
+
       mkPackage =
         pkgs:
         pkgs.python3.pkgs.buildPythonApplication {
@@ -75,8 +82,8 @@
         in
         pkgs.mkShell {
           packages = [
-            # Full Python environment with all runtime dependencies.
-            (pkgs.python3.withPackages pythonDeps)
+            # Full Python environment with all runtime + dev dependencies.
+            (pkgs.python3.withPackages (ps: pythonDeps ps ++ devPythonDeps ps))
             # System tools available to yt-dlp at runtime.
             pkgs.ffmpeg
             pkgs.yt-dlp
