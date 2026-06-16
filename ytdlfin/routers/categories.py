@@ -35,7 +35,7 @@ async def api_create_category(
         _validate_path(payload.path)
     except HTTPException as exc:
         if is_htmx:
-            return HTMLResponse(exc.detail, status_code=200)
+            return HTMLResponse(exc.detail, status_code=400)
         raise
 
     try:
@@ -49,7 +49,7 @@ async def api_create_category(
             else str(exc)
         )
         if is_htmx:
-            return HTMLResponse(msg, status_code=200)
+            return HTMLResponse(msg, status_code=400)
         raise HTTPException(400, msg)
 
     if is_htmx:
@@ -84,6 +84,7 @@ async def api_update_category(
                 request,
                 "partials/category_edit_row.html",
                 {"cat": cat, "error": exc.detail},
+                status_code=422,
             )
         raise
 
@@ -126,6 +127,7 @@ async def api_delete_category(
                 request,
                 "partials/category_row.html",
                 {"cat": cat, "error": msg},
+                status_code=409,
             )
         raise HTTPException(409, msg)
 

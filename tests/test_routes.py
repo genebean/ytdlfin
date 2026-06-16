@@ -83,7 +83,7 @@ def test_submit_download_success(admin_client, tmp_path):
         "/api/categories",
         json={"name": "Movies", "path": str(cat_dir)},
     )
-    assert resp.status_code == 200 or resp.status_code == 201
+    assert resp.status_code == 201
     import json
     cat = json.loads(resp.content)
     cat_id = cat["id"]
@@ -349,7 +349,7 @@ def test_htmx_create_category_invalid_path_returns_error_html(admin_client):
         data={"name": "Movies", "path": "/nonexistent/path"},
         headers=HTMX,
     )
-    assert resp.status_code == 200  # HTMX errors stay 200 so the swap triggers
+    assert resp.status_code == 400
     assert "not exist" in resp.text.lower() or "writable" in resp.text.lower()
 
 
@@ -362,7 +362,7 @@ def test_htmx_create_category_duplicate_name_returns_error_html(admin_client, tm
         data={"name": "Movies", "path": str(cat_dir)},
         headers=HTMX,
     )
-    assert resp.status_code == 200
+    assert resp.status_code == 400
     assert "already exists" in resp.text.lower()
 
 
@@ -393,7 +393,7 @@ def test_htmx_update_category_invalid_path_returns_edit_row(admin_client, tmp_pa
         data={"name": "Movies", "path": "/nonexistent"},
         headers=HTMX,
     )
-    assert resp.status_code == 200
+    assert resp.status_code == 422
     assert "text/html" in resp.headers["content-type"]
     # Should render the edit form with an inline error, not just plain text
     assert "input" in resp.text.lower() or "form" in resp.text.lower()
@@ -419,7 +419,7 @@ def test_htmx_delete_category_with_active_downloads_returns_row(admin_client, tm
     )
 
     resp = admin_client.delete(f"/api/categories/{cat_id}", headers=HTMX)
-    assert resp.status_code == 200
+    assert resp.status_code == 409
     # Returns the category row (unchanged) with an error annotation
     assert "text/html" in resp.headers["content-type"]
     assert "pending" in resp.text.lower() or "active" in resp.text.lower() or "cancel" in resp.text.lower()
