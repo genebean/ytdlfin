@@ -20,6 +20,10 @@ staging/
 # Secrets
 .env
 
+# Test output
+pytest-results.xml
+.pytest_cache/
+
 # Nix
 result
 result-*

@@ -1,39 +1,29 @@
-"""FastAPI application — factory, lifespan, middleware, and all route handlers."""
+"""FastAPI application — factory, lifespan, middleware, and exception handlers."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
 import os
-import shutil
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
 
-import aiosqlite
-import yt_dlp.utils
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
-
-import re
-from urllib.parse import urlparse
 
 from . import db as database
 from .auth import (
     NotAdmin,
     NotAuthenticated,
-    flash,
-    get_current_user,
-    pop_flashes,
-    require_admin,
     router as auth_router,
 )
-from .models import CategoryCreate, CategoryUpdate, DownloadRequest
+from .routers.categories import router as categories_router
+from .routers.downloads import router as downloads_router
+from .routers.pages import router as pages_router
 from .worker import download_worker, recover_staging
-from .ytdlp import STAGING_DIR, get_available_resolutions
+from .ytdlp import STAGING_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -47,31 +37,12 @@ PORT = int(os.environ.get("PORT", "8000"))
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "info")
 # Set HTTPS_ONLY=true when running behind an HTTPS reverse proxy (e.g. nginx).
 # Marks session cookies Secure so browsers only send them over TLS.
-# Leave false for local HTTP development.
 HTTPS_ONLY = os.environ.get("HTTPS_ONLY", "false").lower() == "true"
 # IPs allowed to set X-Forwarded-* headers. Defaults to 127.0.0.1 for the
-# standard same-host nginx deployment. Set to "*" to trust all upstream proxies
-# (acceptable for isolated LAN deployments behind a physical firewall).
+# standard same-host nginx deployment.
 TRUSTED_PROXY_IPS = os.environ.get("TRUSTED_PROXY_IPS", "127.0.0.1")
 
-TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
-
-# Allowed base paths for category directories. When set, _validate_path
-# rejects any path that doesn't resolve inside one of these prefixes.
-# Colon-separated; empty means no containment check (local dev).
-_raw_media_dirs = os.environ.get("MEDIA_DIRECTORIES", "")
-MEDIA_DIRECTORIES: list[Path] = [
-    Path(p).resolve() for p in _raw_media_dirs.split(":") if p.strip()
-]
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
-
-
-def _render(name: str, request: Request, **ctx) -> HTMLResponse:
-    """Render a Jinja2 template with flash messages injected."""
-    ctx["flash_messages"] = pop_flashes(request)
-    ctx["user"] = request.session.get("user")
-    return templates.TemplateResponse(name, {"request": request, **ctx})
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
@@ -79,14 +50,12 @@ def _render(name: str, request: Request, **ctx) -> HTMLResponse:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Ensure the data directory exists.
     database.DATA_DIR.mkdir(parents=True, exist_ok=True)
     STAGING_DIR.mkdir(parents=True, exist_ok=True)
 
     conn = await database.open_db()
     await database.init_schema(conn)
 
-    # Recovery: clean up orphaned staging dirs, reset interrupted downloads.
     await recover_staging()
     await database.reset_interrupted_downloads(conn)
 
@@ -123,8 +92,6 @@ def create_app() -> FastAPI:
         same_site="lax",
     )
 
-    # ── Exception handlers ────────────────────────────────────────────────────
-
     @app.exception_handler(NotAuthenticated)
     async def not_authenticated_handler(request: Request, exc: NotAuthenticated):
         return RedirectResponse(url="/auth/login", status_code=303)
@@ -133,496 +100,12 @@ def create_app() -> FastAPI:
     async def not_admin_handler(request: Request, exc: NotAdmin):
         return HTMLResponse("<h1>403 Forbidden</h1>", status_code=403)
 
-    # ── Auth routes ───────────────────────────────────────────────────────────
     app.include_router(auth_router)
-
-    @app.get("/auth/denied", response_class=HTMLResponse)
-    async def auth_denied(request: Request):
-        """Shown when a user authenticates with PocketID but lacks group access."""
-        return templates.TemplateResponse(
-            "login.html",
-            {
-                "request": request,
-                "error": "Your account is not in an authorized group for this application. "
-                         "Contact an administrator to request access.",
-            },
-        )
-
-    # ── Page routes ───────────────────────────────────────────────────────────
-
-    @app.get("/", response_class=HTMLResponse)
-    async def index(request: Request, user=Depends(get_current_user)):
-        categories = await database.list_categories(request.app.state.db)
-        queue = await database.get_queue(request.app.state.db)
-        return _render(
-            "index.html",
-            request,
-            categories=categories,
-            queue=queue,
-            resolutions=[],
-            quality_selected="1080p",
-        )
-
-    @app.get("/history", response_class=HTMLResponse)
-    async def history_page(
-        request: Request,
-        page: int = 1,
-        status: str = "",
-        user=Depends(get_current_user),
-    ):
-        result = await database.list_downloads(
-            request.app.state.db,
-            page=page,
-            per_page=20,
-            status=status or None,
-            user_email=user["email"],
-            is_admin=user["is_admin"],
-        )
-        return _render(
-            "history.html",
-            request,
-            downloads=result["items"],
-            page=result["page"],
-            pages=result["pages"],
-            total=result["total"],
-            status_filter=status,
-        )
-
-    @app.get("/admin", response_class=HTMLResponse)
-    async def admin_page(request: Request, user=Depends(require_admin)):
-        categories = await database.list_categories(request.app.state.db)
-        return _render("admin.html", request, categories=categories)
-
-    # ── Browser form: submit a download ──────────────────────────────────────
-
-    @app.post("/downloads")
-    async def submit_download(request: Request, user=Depends(get_current_user)):
-        """
-        Browser form POST handler. Validates, creates the DB record, enqueues,
-        and redirects back to / with a flash message.
-        """
-        form = await request.form()
-        url = str(form.get("url", "")).strip()
-        try:
-            category_id = int(form.get("category_id", 0))
-        except ValueError:
-            category_id = 0
-        quality = str(form.get("quality", "1080p"))
-        custom_title = str(form.get("custom_title", "")).strip() or None
-
-        if not url:
-            flash(request, "URL is required.", "error")
-            return RedirectResponse(url="/", status_code=303)
-
-        if not _validate_url_scheme(url):
-            flash(request, "Only http:// and https:// URLs are supported.", "error")
-            return RedirectResponse(url="/", status_code=303)
-
-        conn = request.app.state.db
-
-        if await database.url_is_active(conn, url):
-            flash(request, "That URL is already in the queue.", "error")
-            return RedirectResponse(url="/", status_code=303)
-
-        category = await database.get_category(conn, category_id)
-        if not category:
-            flash(request, "Invalid category selected.", "error")
-            return RedirectResponse(url="/", status_code=303)
-
-        if quality != "best" and not re.match(r"^\d+p$", quality):
-            quality = "1080p"
-
-        await database.create_download(
-            conn,
-            url=url,
-            category=category,
-            quality=quality,
-            custom_title=custom_title,
-            requested_by_email=user["email"],
-            requested_by_name=user["name"],
-        )
-
-        flash(request, "Added to queue. Click “Start downloads” when ready.", "success")
-        return RedirectResponse(url="/", status_code=303)
-
-    # ── HTMX partial: resolution picker ──────────────────────────────────────
-
-    @app.get("/api/resolutions", response_class=HTMLResponse)
-    async def api_resolutions(
-        request: Request, url: str = "", user=Depends(get_current_user)
-    ):
-        """Return the quality <select> HTML filled with available resolutions for url."""
-        resolutions: list[int] = []
-        if url and _validate_url_scheme(url):
-            try:
-                loop = asyncio.get_event_loop()
-                resolutions = await loop.run_in_executor(
-                    None, lambda: get_available_resolutions(url)
-                )
-            except Exception:
-                logger.warning("Resolution lookup failed for %s", url)
-
-        if 1080 in resolutions:
-            selected = "1080p"
-        elif resolutions:
-            selected = f"{resolutions[0]}p"
-        else:
-            selected = "1080p"
-
-        return templates.TemplateResponse(
-            "partials/quality_select.html",
-            {"request": request, "resolutions": resolutions, "quality_selected": selected},
-        )
-
-    # ── HTMX partial: active queue ────────────────────────────────────────────
-
-    async def _queue_partial_response(request: Request, user: dict) -> HTMLResponse:
-        """Render the queue partial with all context it needs."""
-        conn = request.app.state.db
-        queue = await database.get_queue(conn)
-        categories = await database.list_categories(conn)
-        return templates.TemplateResponse(
-            "queue_partial.html",
-            {"request": request, "queue": queue, "user": user, "categories": categories},
-        )
-
-    @app.get("/api/queue", response_class=HTMLResponse)
-    async def api_queue(request: Request, user=Depends(get_current_user)):
-        """Returns an HTML partial for the queue section (polled every 3s by HTMX)."""
-        return await _queue_partial_response(request, user)
-
-    @app.post("/api/queue/start", response_class=HTMLResponse)
-    async def api_queue_start(request: Request, user=Depends(get_current_user)):
-        """Enqueue all pending downloads so the worker starts processing them."""
-        conn = request.app.state.db
-        for pid in await database.get_pending_ids(conn):
-            await request.app.state.queue.put(pid)
-        return await _queue_partial_response(request, user)
-
-    @app.patch("/api/downloads/{download_id}", response_class=HTMLResponse)
-    async def api_update_download(
-        download_id: int,
-        request: Request,
-        user=Depends(get_current_user),
-    ):
-        """Change the category of a pending download (HTMX inline edit)."""
-        conn = request.app.state.db
-        record = await database.get_download(conn, download_id)
-        if not record:
-            raise HTTPException(404, "Download not found")
-        if record["status"] != "pending":
-            raise HTTPException(409, "Only pending downloads can be edited")
-        if not user["is_admin"] and record["requested_by_email"] != user["email"]:
-            raise HTTPException(403, "Not allowed")
-
-        form = await request.form()
-        try:
-            category_id = int(form.get("category_id", 0))
-        except ValueError:
-            raise HTTPException(400, "Invalid category_id")
-
-        category = await database.get_category(conn, category_id)
-        if not category:
-            raise HTTPException(400, "Category not found")
-
-        updated = await database.update_download_category(conn, download_id, category)
-        categories = await database.list_categories(conn)
-        return templates.TemplateResponse(
-            "partials/queue_row.html",
-            {"request": request, "item": updated, "user": user, "categories": categories},
-        )
-
-    @app.get("/partials/queue/{download_id}", response_class=HTMLResponse)
-    async def partial_queue_row(
-        download_id: int, request: Request, user=Depends(get_current_user)
-    ):
-        """Normal queue row (used to cancel an in-progress edit)."""
-        conn = request.app.state.db
-        record = await database.get_download(conn, download_id)
-        if not record:
-            raise HTTPException(404)
-        categories = await database.list_categories(conn)
-        return templates.TemplateResponse(
-            "partials/queue_row.html",
-            {"request": request, "item": record, "user": user, "categories": categories},
-        )
-
-    @app.get("/partials/queue/{download_id}/edit", response_class=HTMLResponse)
-    async def partial_queue_row_edit(
-        download_id: int, request: Request, user=Depends(get_current_user)
-    ):
-        """Edit-mode queue row with category dropdown."""
-        conn = request.app.state.db
-        record = await database.get_download(conn, download_id)
-        if not record:
-            raise HTTPException(404)
-        if record["status"] != "pending":
-            raise HTTPException(409, "Only pending downloads can be edited")
-        categories = await database.list_categories(conn)
-        return templates.TemplateResponse(
-            "partials/queue_row_edit.html",
-            {"request": request, "item": record, "user": user, "categories": categories},
-        )
-
-    # ── JSON API: downloads ───────────────────────────────────────────────────
-
-    @app.post("/api/downloads", status_code=201)
-    async def api_create_download(
-        payload: DownloadRequest,
-        request: Request,
-        user=Depends(get_current_user),
-    ):
-        conn = request.app.state.db
-
-        if await database.url_is_active(conn, payload.url):
-            raise HTTPException(400, "URL is already pending or downloading")
-
-        category = await database.get_category(conn, payload.category_id)
-        if not category:
-            raise HTTPException(400, "Category not found")
-
-        record = await database.create_download(
-            conn,
-            url=payload.url,
-            category=category,
-            quality=payload.quality,
-            custom_title=payload.custom_title,
-            requested_by_email=user["email"],
-            requested_by_name=user["name"],
-        )
-        return record
-
-    @app.get("/api/downloads")
-    async def api_list_downloads(
-        request: Request,
-        page: int = 1,
-        per_page: int = 20,
-        status: str = "",
-        user=Depends(get_current_user),
-    ):
-        return await database.list_downloads(
-            request.app.state.db,
-            page=page,
-            per_page=per_page,
-            status=status or None,
-            user_email=user["email"],
-            is_admin=user["is_admin"],
-        )
-
-    @app.delete("/api/downloads/{download_id}")
-    async def api_cancel_download(
-        download_id: int,
-        request: Request,
-        user=Depends(get_current_user),
-    ):
-        conn = request.app.state.db
-        record = await database.get_download(conn, download_id)
-        if not record:
-            raise HTTPException(404, "Download not found")
-
-        # Only the requesting user or an admin may cancel.
-        if not user["is_admin"] and record["requested_by_email"] != user["email"]:
-            raise HTTPException(403, "Not allowed")
-
-        if record["status"] != "pending":
-            raise HTTPException(409, "Only pending downloads can be cancelled")
-
-        await database.cancel_download(conn, download_id)
-        return {"ok": True}
-
-    # ── JSON API: categories ──────────────────────────────────────────────────
-
-    @app.get("/api/categories")
-    async def api_list_categories(
-        request: Request, user=Depends(get_current_user)
-    ):
-        return await database.list_categories(request.app.state.db)
-
-    @app.post("/api/categories")
-    async def api_create_category(
-        request: Request,
-        user=Depends(require_admin),
-    ):
-        """
-        Accepts JSON (programmatic) or form data (admin HTMX form).
-        Returns the new category list HTML partial for HTMX callers, JSON for others.
-        """
-        is_htmx = request.headers.get("HX-Request") == "true"
-        payload = await _parse_category(request)
-
-        try:
-            _validate_path(payload.path)
-        except HTTPException as exc:
-            if is_htmx:
-                return HTMLResponse(exc.detail, status_code=200)
-            raise
-
-        try:
-            cat = await database.create_category(
-                request.app.state.db, payload.name, payload.path, payload.description
-            )
-        except Exception as exc:
-            msg = (
-                "A category with that name already exists"
-                if "UNIQUE constraint" in str(exc)
-                else str(exc)
-            )
-            if is_htmx:
-                return HTMLResponse(msg, status_code=200)
-            raise HTTPException(400, msg)
-
-        if is_htmx:
-            cats = await database.list_categories(request.app.state.db)
-            return templates.TemplateResponse(
-                "partials/category_list.html",
-                {"request": request, "categories": cats},
-            )
-        return JSONResponse(content=cat, status_code=201)
-
-    @app.put("/api/categories/{category_id}")
-    async def api_update_category(
-        category_id: int,
-        request: Request,
-        user=Depends(require_admin),
-    ):
-        """
-        Accepts JSON or form data. Returns the updated row HTML for HTMX; JSON otherwise.
-        On validation error for HTMX, returns the edit form with an inline error.
-        """
-        is_htmx = request.headers.get("HX-Request") == "true"
-        payload = await _parse_category(request)
-
-        try:
-            _validate_path(payload.path)
-        except HTTPException as exc:
-            if is_htmx:
-                # Return the edit row with the error shown inline.
-                cat = await database.get_category(request.app.state.db, category_id)
-                return templates.TemplateResponse(
-                    "partials/category_edit_row.html",
-                    {"request": request, "cat": cat, "error": exc.detail},
-                )
-            raise
-
-        cat = await database.update_category(
-            request.app.state.db,
-            category_id,
-            payload.name,
-            payload.path,
-            payload.description,
-        )
-        if not cat:
-            raise HTTPException(404, "Category not found")
-
-        if is_htmx:
-            return templates.TemplateResponse(
-                "partials/category_row.html",
-                {"request": request, "cat": cat},
-            )
-        return cat
-
-    @app.delete("/api/categories/{category_id}")
-    async def api_delete_category(
-        category_id: int,
-        request: Request,
-        user=Depends(require_admin),
-    ):
-        """
-        Deletes a category. Returns empty HTML for HTMX (removes the row); JSON otherwise.
-        """
-        is_htmx = request.headers.get("HX-Request") == "true"
-        conn = request.app.state.db
-
-        if await database.category_has_active_downloads(conn, category_id):
-            msg = "Category has pending or active downloads; cancel them first"
-            if is_htmx:
-                # Return the row unchanged so the UI stays consistent.
-                cat = await database.get_category(conn, category_id)
-                return templates.TemplateResponse(
-                    "partials/category_row.html",
-                    {"request": request, "cat": cat, "error": msg},
-                )
-            raise HTTPException(409, msg)
-
-        deleted = await database.delete_category(conn, category_id)
-        if not deleted:
-            raise HTTPException(404, "Category not found")
-
-        # Empty body causes hx-swap="outerHTML" to remove the row from the DOM.
-        if is_htmx:
-            return HTMLResponse("", status_code=200)
-        return {"ok": True}
-
-    # ── HTMX partials: admin category management ──────────────────────────────
-
-    @app.get("/partials/categories", response_class=HTMLResponse)
-    async def partial_category_list(request: Request, user=Depends(require_admin)):
-        cats = await database.list_categories(request.app.state.db)
-        return templates.TemplateResponse(
-            "partials/category_list.html", {"request": request, "categories": cats}
-        )
-
-    @app.get("/partials/categories/{category_id}", response_class=HTMLResponse)
-    async def partial_category_row(
-        category_id: int, request: Request, user=Depends(require_admin)
-    ):
-        cat = await database.get_category(request.app.state.db, category_id)
-        if not cat:
-            raise HTTPException(404)
-        return templates.TemplateResponse(
-            "partials/category_row.html", {"request": request, "cat": cat}
-        )
-
-    @app.get("/partials/categories/{category_id}/edit", response_class=HTMLResponse)
-    async def partial_category_edit(
-        category_id: int, request: Request, user=Depends(require_admin)
-    ):
-        cat = await database.get_category(request.app.state.db, category_id)
-        if not cat:
-            raise HTTPException(404)
-        return templates.TemplateResponse(
-            "partials/category_edit_row.html", {"request": request, "cat": cat}
-        )
+    app.include_router(pages_router)
+    app.include_router(downloads_router)
+    app.include_router(categories_router)
 
     return app
-
-
-def _validate_url_scheme(url: str) -> bool:
-    """Return True only for http/https URLs — rejects file://, rtmp://, etc."""
-    try:
-        return urlparse(url).scheme in ("http", "https")
-    except Exception:
-        return False
-
-
-def _validate_path(path: str) -> None:
-    """Raise HTTP 400 if path is not a writable directory inside MEDIA_DIRECTORIES."""
-    resolved = Path(path).resolve()
-    if not resolved.is_dir() or not os.access(resolved, os.W_OK):
-        raise HTTPException(400, "Path does not exist or is not writable.")
-    if MEDIA_DIRECTORIES and not any(
-        resolved == allowed or resolved.is_relative_to(allowed)
-        for allowed in MEDIA_DIRECTORIES
-    ):
-        raise HTTPException(400, "Path is not within an allowed media directory.")
-
-
-async def _parse_category(request: Request) -> "CategoryCreate":
-    """
-    Parse a CategoryCreate/CategoryUpdate payload from either JSON or form data.
-    Allows the same endpoint to serve both JSON API clients and HTMX form submissions.
-    """
-    content_type = request.headers.get("content-type", "")
-    if "application/json" in content_type:
-        data = await request.json()
-    else:
-        form = await request.form()
-        data = {
-            "name": str(form.get("name", "")),
-            "path": str(form.get("path", "")),
-            "description": str(form.get("description", "")) or None,
-        }
-    return CategoryCreate(**data)
 
 
 # ── Module-level app instance and entry point ─────────────────────────────────
@@ -640,9 +123,6 @@ def run() -> None:
         port=PORT,
         log_level=LOG_LEVEL,
         access_log=True,
-        # Trust X-Forwarded-For and X-Forwarded-Proto from upstream proxies.
-        # Required for correct scheme detection behind nginx (OIDC redirect URI
-        # construction and Secure cookie flag both depend on this).
         proxy_headers=True,
         forwarded_allow_ips=TRUSTED_PROXY_IPS,
     )
