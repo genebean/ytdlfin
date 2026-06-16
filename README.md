@@ -1,5 +1,7 @@
 # ytdlfin
 
+![ytdlfin](images/ytdlfin-banner.png)
+
 Self-hosted video downloader for Jellyfin. Paste a URL, pick a category, and the file
 lands in the right Jellyfin directory with NFO metadata and poster art — no manual
 file management required. Authentication is handled by PocketID (OIDC) with
