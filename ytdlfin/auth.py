@@ -22,6 +22,20 @@ OIDC_REDIRECT_URI = os.environ.get("OIDC_REDIRECT_URI", "")
 ADMIN_GROUP = os.environ.get("ADMIN_GROUP", "")
 USER_GROUP = os.environ.get("USER_GROUP", "")
 
+_REQUIRED = {
+    "OIDC_ISSUER_URL": OIDC_ISSUER_URL,
+    "OIDC_CLIENT_ID": OIDC_CLIENT_ID,
+    "OIDC_CLIENT_SECRET": OIDC_CLIENT_SECRET,
+    "OIDC_REDIRECT_URI": OIDC_REDIRECT_URI,
+    "ADMIN_GROUP": ADMIN_GROUP,
+    "USER_GROUP": USER_GROUP,
+}
+_missing = [k for k, v in _REQUIRED.items() if not v]
+if _missing:
+    raise RuntimeError(
+        f"Missing required environment variable(s): {', '.join(_missing)}"
+    )
+
 # ── OAuth client ──────────────────────────────────────────────────────────────
 
 oauth = OAuth()

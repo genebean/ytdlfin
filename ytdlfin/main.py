@@ -19,6 +19,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 import re
+from urllib.parse import urlparse
 
 from . import db as database
 from .auth import (
@@ -36,17 +37,22 @@ from .ytdlp import STAGING_DIR, get_available_resolutions
 
 logger = logging.getLogger(__name__)
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "change-me-in-production")
+SECRET_KEY = os.environ.get("SECRET_KEY", "")
+if not SECRET_KEY or SECRET_KEY == "change-me-in-production":
+    raise RuntimeError(
+        "SECRET_KEY must be set to a strong random value via the environment. "
+        "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+    )
 PORT = int(os.environ.get("PORT", "8000"))
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "info")
 # Set HTTPS_ONLY=true when running behind an HTTPS reverse proxy (e.g. nginx).
 # Marks session cookies Secure so browsers only send them over TLS.
 # Leave false for local HTTP development.
 HTTPS_ONLY = os.environ.get("HTTPS_ONLY", "false").lower() == "true"
-# IPs allowed to set X-Forwarded-* headers. "*" trusts all upstream proxies —
-# safe for LAN deployments protected by a physical firewall. Set to a specific
-# IP (e.g. "127.0.0.1") if tighter control is needed.
-TRUSTED_PROXY_IPS = os.environ.get("TRUSTED_PROXY_IPS", "*")
+# IPs allowed to set X-Forwarded-* headers. Defaults to 127.0.0.1 for the
+# standard same-host nginx deployment. Set to "*" to trust all upstream proxies
+# (acceptable for isolated LAN deployments behind a physical firewall).
+TRUSTED_PROXY_IPS = os.environ.get("TRUSTED_PROXY_IPS", "127.0.0.1")
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -200,6 +206,10 @@ def create_app() -> FastAPI:
             flash(request, "URL is required.", "error")
             return RedirectResponse(url="/", status_code=303)
 
+        if not _validate_url_scheme(url):
+            flash(request, "Only http:// and https:// URLs are supported.", "error")
+            return RedirectResponse(url="/", status_code=303)
+
         conn = request.app.state.db
 
         if await database.url_is_active(conn, url):
@@ -235,7 +245,7 @@ def create_app() -> FastAPI:
     ):
         """Return the quality <select> HTML filled with available resolutions for url."""
         resolutions: list[int] = []
-        if url:
+        if url and _validate_url_scheme(url):
             try:
                 loop = asyncio.get_event_loop()
                 resolutions = await loop.run_in_executor(
@@ -567,6 +577,14 @@ def create_app() -> FastAPI:
         )
 
     return app
+
+
+def _validate_url_scheme(url: str) -> bool:
+    """Return True only for http/https URLs — rejects file://, rtmp://, etc."""
+    try:
+        return urlparse(url).scheme in ("http", "https")
+    except Exception:
+        return False
 
 
 def _validate_path(path: str) -> None:
