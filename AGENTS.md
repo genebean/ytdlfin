@@ -201,8 +201,12 @@ architecture, data model, API, or module options.
 The test suite lives in `tests/` and runs under the Nix dev shell:
 
 ```
-nix develop --command pytest tests/ -v
+nix develop --command ytdlfin-test
 ```
+
+This runs pytest with coverage output. Extra args are passed through to pytest
+(e.g. `ytdlfin-test -v` for verbose, `ytdlfin-test -k test_name` to run one test).
+Outside an active dev shell, use `nix develop --command ytdlfin-test` directly.
 
 **Run tests before every commit.** If tests fail, fix them before committing —
 don't commit broken tests and intend to fix them later.
@@ -237,7 +241,7 @@ Test files map to source modules:
 
 ## Pre-push checklist
 
-1. `nix develop --command pytest tests/` — all tests must pass before pushing
+1. `nix develop --command ytdlfin-test` — all tests must pass before pushing
 2. `pre-commit run --all-files` — catches formatting and dead-code issues fast
 3. `nix build` — if `flake.nix` or `pyproject.toml` changed
 4. Manual smoke test in `nix develop` — start uvicorn, verify the login redirect works

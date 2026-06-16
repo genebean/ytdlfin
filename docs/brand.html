@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    (function () {
+      var stored = localStorage.getItem('ytdlfin-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', stored || (prefersDark ? 'dark' : 'light'));
+    })();
+  </script>
+  <title>ytdlfin — Brand Guide</title>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="ytdlfin" />
+  <meta property="og:title" content="ytdlfin — Brand Guide" />
+  <meta property="og:description" content="Colors, typography, logo, and image assets for ytdlfin." />
+  <meta property="og:image" content="https://genebean.github.io/ytdlfin/images/ytdlfin-banner.webp" />
+  <meta property="og:url" content="https://genebean.github.io/ytdlfin/brand.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://genebean.github.io/ytdlfin/images/ytdlfin-banner.webp" />
+  <link rel="icon" href="images/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="images/favicon-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css"
+    integrity="sha384-L1dWfspMTHU/ApYnFiMz2QID/PlP1xCW9visvBdbEkOLkSSWsP6ZJWhPw6apiXxU"
+    crossorigin="anonymous"
+  />
+  <link rel="stylesheet" href="ytdlfin.css" />
+  <style>
+    .section-heading {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin: 2rem 0 0.75rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--yt-border);
+      color: var(--yt-text);
+    }
+
+    /* === Color swatches === */
+    .swatch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .swatch {
+      border-radius: var(--pico-border-radius);
+      border: 1px solid var(--yt-border);
+      overflow: hidden;
+    }
+    .swatch-color {
+      height: 4rem;
+    }
+    .swatch-label {
+      padding: 0.5rem 0.75rem;
+      background: var(--yt-card);
+    }
+    .swatch-label strong {
+      display: block;
+      font-size: 0.88rem;
+      color: var(--yt-text);
+    }
+    .swatch-label code {
+      font-size: 0.8rem;
+      color: var(--yt-muted);
+      background: none;
+      padding: 0;
+    }
+    .swatch-gradient .swatch-color {
+      background: var(--yt-gradient);
+    }
+    .swatch-gradient-135 .swatch-color {
+      background: var(--yt-gradient-135);
+    }
+
+    /* === Typography samples === */
+    .type-sample {
+      border: 1px solid var(--yt-border);
+      border-radius: var(--pico-border-radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+      background: var(--yt-card);
+    }
+    .type-meta {
+      font-size: 0.8rem;
+      color: var(--yt-muted);
+      margin-bottom: 0.5rem;
+    }
+    .sora-display {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: var(--yt-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      line-height: 1.1;
+      margin: 0;
+    }
+    .sora-heading {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--yt-text);
+      margin: 0;
+    }
+    .sora-label {
+      font-family: 'Sora', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--yt-text);
+      margin: 0;
+    }
+    .body-sample {
+      font-size: 1rem;
+      color: var(--yt-text);
+      line-height: 1.6;
+      margin: 0;
+    }
+    .muted-sample {
+      font-size: 0.93rem;
+      color: var(--yt-muted);
+      margin: 0;
+    }
+
+    /* === Wordmark === */
+    .wordmark-row {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .wordmark-box {
+      border: 1px solid var(--yt-border);
+      border-radius: var(--pico-border-radius);
+      padding: 1rem 1.5rem;
+      background: var(--yt-card);
+      display: flex;
+      align-items: center;
+      gap: 0.4em;
+    }
+    .wm-icon { width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0; }
+    .wm-ytdl { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 1.3rem; letter-spacing: -0.02em; color: var(--yt-text); }
+    .wm-fin {
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      font-size: 1.3rem;
+      letter-spacing: -0.02em;
+      background: var(--yt-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+    .wordmark-note { font-size: 0.88rem; color: var(--yt-muted); }
+
+    /* === Icon grid === */
+    .icon-grid {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 1.5rem;
+    }
+    .icon-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .icon-cell img {
+      display: block;
+      border-radius: 6px;
+      border: 1px solid var(--yt-border);
+    }
+    .icon-cell span { font-size: 0.8rem; color: var(--yt-muted); }
+
+    /* === Image assets === */
+    .asset-card {
+      border: 1px solid var(--yt-border);
+      border-radius: var(--pico-border-radius);
+      overflow: hidden;
+      margin-bottom: 1rem;
+      background: var(--yt-card);
+    }
+    .asset-card img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .asset-meta {
+      padding: 0.75rem 1rem;
+      font-size: 0.88rem;
+      color: var(--yt-muted);
+    }
+    .asset-meta strong { color: var(--yt-text); display: block; margin-bottom: 0.2rem; }
+
+    /* === CSS variable reference table === */
+    .var-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .var-table th, .var-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--yt-border); text-align: left; vertical-align: middle; }
+    .var-table th { font-weight: 600; color: var(--yt-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .var-table td code { font-size: 0.85rem; }
+    .var-swatch { display: inline-block; width: 1rem; height: 1rem; border-radius: 3px; border: 1px solid var(--yt-border); vertical-align: middle; margin-right: 0.4em; }
+
+    @media (max-width: 640px) {
+      .swatch-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul>
+        <li>
+          <a href="index.html" class="brand">
+            <img src="images/ytdlfin-icon.png" alt="" aria-hidden="true" width="24" height="24" style="flex-shrink:0;border-radius:4px" />
+            <span class="brand-ytdl">ytdl</span><span class="brand-fin">fin</span>
+          </a>
+        </li>
+        <li>
+          <button id="nav-toggle" class="nav-hamburger" aria-label="Menu" aria-expanded="false" onclick="toggleNav()">☰</button>
+        </li>
+      </ul>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="index.html">Docs home</a></li>
+        <li><a href="reference/spec.html">Spec</a></li>
+        <li><a href="brand.html" class="nav-active">Brand</a></li>
+        <li><a href="https://github.com/genebean/ytdlfin" target="_blank" rel="noopener">GitHub</a></li>
+        <li>
+          <div class="theme-picker" role="group" aria-label="Theme">
+            <button type="button" id="theme-auto"  onclick="setThemeMode('auto')">auto</button>
+            <button type="button" id="theme-light" onclick="setThemeMode('light')">☀️</button>
+            <button type="button" id="theme-dark"  onclick="setThemeMode('dark')">🌙</button>
+          </div>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1 style="font-family:'Sora',sans-serif;font-size:clamp(1.6rem,4vw,2.2rem);font-weight:800;letter-spacing:-0.03em;background:var(--yt-gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;margin-bottom:0.25rem;border:none;padding:0;">Brand Guide</h1>
+    <p style="color:var(--yt-muted);margin-bottom:2rem;">Colors, typography, logo, wordmark, and image assets — shared by the web app and the docs site.</p>
+
+    <!-- Design tools -->
+    <h2 class="section-heading">Using in Canva / design tools</h2>
+    <table class="var-table">
+      <thead>
+        <tr><th>Asset</th><th>What to use</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Brand colors</td>
+          <td>Copy hex values from the Colors section below and paste into Canva's Brand Kit color fields.</td>
+        </tr>
+        <tr>
+          <td>Font</td>
+          <td>Search <strong>Sora</strong> in Canva's font picker — it's available via Google Fonts. Use weights 600, 700, or 800 for headings; the gradient wordmark uses 700.</td>
+        </tr>
+        <tr>
+          <td>Logo / icon</td>
+          <td>Upload <code>ytdlfin/static/favicon-180.png</code> — it's the largest available PNG of the icon (180×180 px).</td>
+        </tr>
+        <tr>
+          <td>Banner image</td>
+          <td>Use <code>images/ytdlfin-readme-banner.png</code> (900 px, 388 KB) — the PNG source gives Canva full quality to work from.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Wordmark -->
+    <h2 class="section-heading">Wordmark</h2>
+    <div class="wordmark-row">
+      <div class="wordmark-box">
+        <img src="images/ytdlfin-icon.png" alt="ytdlfin icon" class="wm-icon" />
+        <span class="wm-ytdl">ytdl</span><span class="wm-fin">fin</span>
+      </div>
+      <div class="wordmark-box" style="background:var(--yt-surface);">
+        <img src="images/ytdlfin-icon.png" alt="ytdlfin icon" class="wm-icon" />
+        <span class="wm-ytdl">ytdl</span><span class="wm-fin">fin</span>
+      </div>
+    </div>
+    <p class="wordmark-note">
+      <strong>ytdl</strong> is rendered in <code>var(--yt-text)</code> — adapts to light/dark theme.<br>
+      <strong>fin</strong> is rendered with the pink-to-blue gradient via <code>-webkit-background-clip: text</code>.<br>
+      Font: <strong>Sora</strong> 700, <code>letter-spacing: -0.02em</code>.
+    </p>
+
+    <!-- Icon / favicon -->
+    <h2 class="section-heading">Icon &amp; favicon</h2>
+    <div class="icon-grid">
+      <div class="icon-cell">
+        <img src="images/ytdlfin-icon.png" alt="ytdlfin icon 96px" width="96" height="96" />
+        <span>96 px</span>
+      </div>
+      <div class="icon-cell">
+        <img src="images/ytdlfin-icon.png" alt="ytdlfin icon 64px" width="64" height="64" />
+        <span>64 px</span>
+      </div>
+      <div class="icon-cell">
+        <img src="images/ytdlfin-icon.png" alt="ytdlfin icon 32px" width="32" height="32" />
+        <span>32 px</span>
+      </div>
+      <div class="icon-cell">
+        <img src="images/ytdlfin-icon.png" alt="ytdlfin icon 24px" width="24" height="24" />
+        <span>24 px (nav)</span>
+      </div>
+      <div class="icon-cell">
+        <img src="images/favicon-180.png" alt="ytdlfin Apple touch icon" width="60" height="60" />
+        <span>favicon-180.png<br>(Apple touch icon)</span>
+      </div>
+    </div>
+    <p class="wordmark-note">
+      Source files live in <code>ytdlfin/static/</code> (served by the app) and are copied to
+      <code>docs/images/</code> for the docs site.<br>
+      Motif: folder + play button + download arrow + pixel sparkle dots in brand gradient.<br>
+      Favicon assets: <code>favicon-32.png</code> (browser tab) and <code>favicon-180.png</code> (Apple touch icon).
+    </p>
+
+    <!-- Colors -->
+    <h2 class="section-heading">Colors</h2>
+    <div class="swatch-grid">
+      <div class="swatch">
+        <div class="swatch-color" style="background:#e040a8;"></div>
+        <div class="swatch-label"><strong>Pink</strong><code>#e040a8</code></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#8b5cf6;"></div>
+        <div class="swatch-label"><strong>Purple</strong><code>#8b5cf6</code></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#38b8f2;"></div>
+        <div class="swatch-label"><strong>Blue</strong><code>#38b8f2</code></div>
+      </div>
+      <div class="swatch swatch-gradient">
+        <div class="swatch-color"></div>
+        <div class="swatch-label"><strong>Gradient (90°)</strong><code>--yt-gradient</code></div>
+      </div>
+      <div class="swatch swatch-gradient-135">
+        <div class="swatch-color"></div>
+        <div class="swatch-label"><strong>Gradient (135°)</strong><code>--yt-gradient-135</code></div>
+      </div>
+    </div>
+
+    <table class="var-table">
+      <thead>
+        <tr><th>Variable</th><th>Light</th><th>Dark</th><th>Usage</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>--yt-pink</code></td>
+          <td><span class="var-swatch" style="background:#e040a8;"></span><code>#e040a8</code></td>
+          <td><span class="var-swatch" style="background:#e040a8;"></span><code>#e040a8</code></td>
+          <td>Gradient start; accent</td>
+        </tr>
+        <tr>
+          <td><code>--yt-purple</code></td>
+          <td><span class="var-swatch" style="background:#8b5cf6;"></span><code>#8b5cf6</code></td>
+          <td><span class="var-swatch" style="background:#8b5cf6;"></span><code>#8b5cf6</code></td>
+          <td>Gradient midpoint; hamburger hover</td>
+        </tr>
+        <tr>
+          <td><code>--yt-blue</code></td>
+          <td><span class="var-swatch" style="background:#38b8f2;"></span><code>#38b8f2</code></td>
+          <td><span class="var-swatch" style="background:#38b8f2;"></span><code>#38b8f2</code></td>
+          <td>Gradient end; active nav link; hover</td>
+        </tr>
+        <tr>
+          <td><code>--yt-surface</code></td>
+          <td><span class="var-swatch" style="background:#eceef8;"></span><code>#eceef8</code></td>
+          <td><span class="var-swatch" style="background:#0e0f1a;border-color:#2a2d44;"></span><code>#0e0f1a</code></td>
+          <td>Page background</td>
+        </tr>
+        <tr>
+          <td><code>--yt-card</code></td>
+          <td><span class="var-swatch" style="background:#f4f5fc;"></span><code>#f4f5fc</code></td>
+          <td><span class="var-swatch" style="background:#161827;border-color:#2a2d44;"></span><code>#161827</code></td>
+          <td>Card / panel backgrounds</td>
+        </tr>
+        <tr>
+          <td><code>--yt-nav</code></td>
+          <td><span class="var-swatch" style="background:rgba(240,241,251,0.92);"></span><code>rgba(240,241,251,0.92)</code></td>
+          <td><span class="var-swatch" style="background:rgba(14,15,26,0.88);border-color:#2a2d44;"></span><code>rgba(14,15,26,0.88)</code></td>
+          <td>Sticky nav frosted glass</td>
+        </tr>
+        <tr>
+          <td><code>--yt-border</code></td>
+          <td><span class="var-swatch" style="background:#d8daea;"></span><code>#d8daea</code></td>
+          <td><span class="var-swatch" style="background:#2a2d44;"></span><code>#2a2d44</code></td>
+          <td>Borders, dividers</td>
+        </tr>
+        <tr>
+          <td><code>--yt-text</code></td>
+          <td><span class="var-swatch" style="background:#1a1c2e;"></span><code>#1a1c2e</code></td>
+          <td><span class="var-swatch" style="background:#e8eaf6;border-color:#2a2d44;"></span><code>#e8eaf6</code></td>
+          <td>Body text, headings</td>
+        </tr>
+        <tr>
+          <td><code>--yt-muted</code></td>
+          <td><span class="var-swatch" style="background:#6b7280;"></span><code>#6b7280</code></td>
+          <td><span class="var-swatch" style="background:#8891b0;border-color:#2a2d44;"></span><code>#8891b0</code></td>
+          <td>Secondary text, labels</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="wordmark-note">
+      These tokens appear in two places and must be kept in sync:
+    </p>
+    <ul style="font-size:0.88rem;color:var(--yt-muted);margin-top:0;">
+      <li><code>docs/ytdlfin.css</code> — shared stylesheet for all documentation pages</li>
+      <li><code>ytdlfin/templates/base.html</code> — inline <code>&lt;style&gt;</code> block used by the live web app</li>
+    </ul>
+    <p class="wordmark-note">
+      When changing a color value, update it in both files. The app also references
+      <code>--yt-muted</code> for status row borders, <code>--yt-blue</code> for the
+      downloading-status indicator, and <code>--yt-purple</code> for the focused/active
+      form and nav states.
+    </p>
+
+    <!-- App-specific token usage -->
+    <h2 class="section-heading">App token usage</h2>
+    <p style="font-size:0.93rem;color:var(--yt-text);margin-bottom:0.5rem;">
+      The web app uses the same tokens for additional UI states beyond what the docs site needs:
+    </p>
+    <table class="var-table">
+      <thead>
+        <tr><th>Token</th><th>App usage</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>--yt-blue</code></td><td>Downloading-status row left border indicator; active nav link</td></tr>
+        <tr><td><code>--yt-purple</code></td><td>Focused input/select border; hamburger hover; active theme button; mobile nav top border</td></tr>
+        <tr><td><code>--yt-muted</code></td><td>Pending-status row left border indicator; secondary labels</td></tr>
+        <tr><td><code>--yt-gradient-135</code></td><td>Primary submit button background; active status-filter pill</td></tr>
+        <tr><td><code>--yt-card</code></td><td>Flash message background; mobile nav dropdown background</td></tr>
+        <tr><td><code>--yt-border</code></td><td>Flash message border; table dividers; status-filter pill border</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Typography -->
+    <h2 class="section-heading">Typography</h2>
+
+    <div class="type-sample">
+      <p class="type-meta">Sora 800 — page titles, gradient hero headings</p>
+      <p class="sora-display">ytdlfin</p>
+    </div>
+    <div class="type-sample">
+      <p class="type-meta">Sora 700 — section headings, wordmark</p>
+      <p class="sora-heading">Category management</p>
+    </div>
+    <div class="type-sample">
+      <p class="type-meta">Sora 600 — nav labels, card headings</p>
+      <p class="sora-label">Submitting a download</p>
+    </div>
+    <div class="type-sample">
+      <p class="type-meta">Body — Pico CSS system stack (no custom body font)</p>
+      <p class="body-sample">Paste any yt-dlp-supported URL into the form on the main page. Choose a category, optionally enter a custom title, and select a quality. Hit <strong>Queue download</strong>.</p>
+    </div>
+    <div class="type-sample">
+      <p class="type-meta">Muted / secondary text</p>
+      <p class="muted-sample">Self-hosted video downloader for Jellyfin — paste a URL, pick a category, done.</p>
+    </div>
+    <p class="wordmark-note" style="margin-top:0.5rem;">
+      Sora is loaded from Google Fonts: <code>family=Sora:wght@600;700;800</code>.<br>
+      Body text uses Pico CSS's default system font stack — no custom body font is set.
+    </p>
+
+    <!-- Image assets -->
+    <h2 class="section-heading">Image assets</h2>
+    <div class="asset-card">
+      <img src="images/ytdlfin-banner.webp" alt="ytdlfin docs banner" />
+      <div class="asset-meta">
+        <strong>docs/images/ytdlfin-banner.webp</strong>
+        720 px wide · WebP · ~15 KB — docs hero image and OpenGraph image for all docs pages.
+      </div>
+    </div>
+    <p class="wordmark-note">
+      The README uses a wider variant at <code>images/ytdlfin-readme-banner.webp</code> (900 px, ~20 KB).<br>
+      PNG source files are kept in <code>images/</code> for future resizing:
+      <code>ytdlfin-readme-banner.png</code> (900 px, 388 KB).
+    </p>
+
+  </main>
+
+  <footer class="container">
+    <a href="https://github.com/genebean/ytdlfin" target="_blank" rel="noopener">ytdlfin on GitHub</a>
+  </footer>
+
+  <script>
+    function systemPrefersDark() {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function applyTheme(theme, stored) {
+      document.documentElement.setAttribute('data-theme', theme);
+      var mode = stored === null ? 'auto' : stored;
+      ['auto', 'light', 'dark'].forEach(function (m) {
+        var btn = document.getElementById('theme-' + m);
+        if (btn) btn.classList.toggle('active', m === mode);
+      });
+    }
+    function setThemeMode(mode) {
+      if (mode === 'auto') {
+        localStorage.removeItem('ytdlfin-theme');
+        applyTheme(systemPrefersDark() ? 'dark' : 'light', null);
+      } else {
+        localStorage.setItem('ytdlfin-theme', mode);
+        applyTheme(mode, mode);
+      }
+    }
+    function toggleNav() {
+      var links = document.getElementById('nav-links');
+      var btn = document.getElementById('nav-toggle');
+      var open = links.classList.toggle('open');
+      btn.setAttribute('aria-expanded', String(open));
+    }
+    document.addEventListener('click', function (e) {
+      var links = document.getElementById('nav-links');
+      var toggle = document.getElementById('nav-toggle');
+      if (links && toggle && !links.contains(e.target) && !toggle.contains(e.target)) {
+        links.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+    var _stored = localStorage.getItem('ytdlfin-theme');
+    applyTheme(document.documentElement.getAttribute('data-theme') || 'light', _stored);
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+      if (!localStorage.getItem('ytdlfin-theme')) {
+        applyTheme(e.matches ? 'dark' : 'light', null);
+      }
+    });
+  </script>
+</body>
+</html>
