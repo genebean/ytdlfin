@@ -222,7 +222,7 @@
       <ul>
         <li>
           <a href="index.html" class="brand">
-            <img src="images/ytdlfin-icon.png" alt="" aria-hidden="true" width="24" height="24" style="flex-shrink:0;border-radius:4px" />
+            <img src="images/ytdlfin-icon.webp" alt="" aria-hidden="true" width="24" height="24" style="flex-shrink:0;border-radius:4px" />
             <span class="brand-ytdl">ytdl</span><span class="brand-fin">fin</span>
           </a>
         </li>
@@ -280,11 +280,11 @@
     <h2 class="section-heading">Wordmark</h2>
     <div class="wordmark-row">
       <div class="wordmark-box">
-        <img src="images/ytdlfin-icon.png" alt="ytdlfin icon" class="wm-icon" />
+        <img src="images/ytdlfin-icon.webp" alt="ytdlfin icon" class="wm-icon" />
         <span class="wm-ytdl">ytdl</span><span class="wm-fin">fin</span>
       </div>
       <div class="wordmark-box" style="background:var(--yt-surface);">
-        <img src="images/ytdlfin-icon.png" alt="ytdlfin icon" class="wm-icon" />
+        <img src="images/ytdlfin-icon.webp" alt="ytdlfin icon" class="wm-icon" />
         <span class="wm-ytdl">ytdl</span><span class="wm-fin">fin</span>
       </div>
     </div>
@@ -298,19 +298,19 @@
     <h2 class="section-heading">Icon &amp; favicon</h2>
     <div class="icon-grid">
       <div class="icon-cell">
-        <img src="images/ytdlfin-icon.png" alt="ytdlfin icon 96px" width="96" height="96" />
+        <img src="images/ytdlfin-icon.webp" alt="ytdlfin icon 96px" width="96" height="96" />
         <span>96 px</span>
       </div>
       <div class="icon-cell">
-        <img src="images/ytdlfin-icon.png" alt="ytdlfin icon 64px" width="64" height="64" />
+        <img src="images/ytdlfin-icon.webp" alt="ytdlfin icon 64px" width="64" height="64" />
         <span>64 px</span>
       </div>
       <div class="icon-cell">
-        <img src="images/ytdlfin-icon.png" alt="ytdlfin icon 32px" width="32" height="32" />
+        <img src="images/ytdlfin-icon.webp" alt="ytdlfin icon 32px" width="32" height="32" />
         <span>32 px</span>
       </div>
       <div class="icon-cell">
-        <img src="images/ytdlfin-icon.png" alt="ytdlfin icon 24px" width="24" height="24" />
+        <img src="images/ytdlfin-icon.webp" alt="ytdlfin icon 24px" width="24" height="24" />
         <span>24 px (nav)</span>
       </div>
       <div class="icon-cell">
@@ -322,7 +322,11 @@
       Source files live in <code>ytdlfin/static/</code> (served by the app) and are copied to
       <code>docs/images/</code> for the docs site.<br>
       Motif: folder + play button + download arrow + pixel sparkle dots in brand gradient.<br>
-      Favicon assets: <code>favicon-32.png</code> (browser tab) and <code>favicon-180.png</code> (Apple touch icon).
+      Favicon assets: <code>favicon-32.png</code> (browser tab) and <code>favicon-180.png</code> (Apple touch icon).<br>
+      <strong>Nav icon</strong>: <code>ytdlfin-icon.webp</code> (256×256) — a transparent-background variant
+      resized from <code>images/ytdlfin-icon-transparent.png</code> (1024×1024 source). Used in the app nav and docs nav
+      so the icon blends with any background. Generated with:
+      <code>magick images/ytdlfin-icon-transparent.png -resize 256x256 ytdlfin/static/ytdlfin-icon.webp</code>
     </p>
 
     <!-- Colors -->

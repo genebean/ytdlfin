@@ -47,7 +47,7 @@ pre-commit install                   # one-time setup after entering shell for t
 uvicorn ytdlfin.main:app --reload    # run locally inside the shell
 ```
 
-The dev shell also provides `pre-commit`, `deadnix`, and `nixfmt-tree`.
+The dev shell also provides `pre-commit`, `deadnix`, `nixfmt-tree`, and `imagemagick` (available as `magick`).
 Run `nix fmt` to reformat all Nix files — the `formatter` output is wired to
 `nixfmt-tree`, so that is the correct command (not `nixfmt` directly).
 
@@ -185,6 +185,22 @@ automatically). This does two things:
 - Marks session cookies `Secure` so browsers only send them over TLS.
 
 Leave `HTTPS_ONLY` unset (defaults to `false`) for local HTTP development.
+
+---
+
+## Image assets
+
+Source images (full-resolution PNG) live in `images/` at the repo root. Derived
+web-ready copies (WebP, resized) go in `ytdlfin/static/` (served by the app) and
+`docs/images/` (served by the docs site). Use `magick` from the dev shell to convert:
+
+```
+magick images/ytdlfin-icon-transparent.png -resize 256x256 ytdlfin/static/ytdlfin-icon.webp
+cp ytdlfin/static/ytdlfin-icon.webp docs/images/ytdlfin-icon.webp
+```
+
+Always commit both the app and docs copies together. The `images/` source files are
+not served — they exist for future resizing and for uploading to design tools.
 
 ---
 
