@@ -60,6 +60,11 @@
       mkDevShell =
         pkgs:
         let
+          runTests = pkgs.writeScriptBin "ytdlfin-test" ''
+            #!${pkgs.bash}/bin/bash
+            cd "$(git rev-parse --show-toplevel)"
+            exec pytest tests/ --cov=ytdlfin --cov-report=term-missing "$@"
+          '';
           docsServe = pkgs.writeScriptBin "ytdlfin-docs-serve" ''
             #!${pkgs.python3}/bin/python3
             import http.server, os, subprocess, sys
@@ -76,8 +81,11 @@
                     super().handle_error(request, client_address)
 
             print(f"Docs available at http://localhost:{port}")
-            with QuietHTTPServer(("0.0.0.0", port), http.server.SimpleHTTPRequestHandler) as httpd:
-                httpd.serve_forever()
+            try:
+                with QuietHTTPServer(("0.0.0.0", port), http.server.SimpleHTTPRequestHandler) as httpd:
+                    httpd.serve_forever()
+            except KeyboardInterrupt:
+                print("\nStopped.")
           '';
         in
         pkgs.mkShell {
@@ -91,6 +99,9 @@
             pkgs.pre-commit
             pkgs.deadnix
             pkgs.nixfmt-tree
+            # Image tools for resizing docs/static assets.
+            pkgs.imagemagick
+            runTests
             docsServe
           ];
 
@@ -98,9 +109,11 @@
             # Make the local package importable without installing it.
             export PYTHONPATH="$PWD:$PYTHONPATH"
             docs-serve() { ytdlfin-docs-serve "$@"; }
+            test() { ytdlfin-test "$@"; }
             if [[ $- == *i* ]]; then
               echo "ytdlfin dev shell"
               echo ""
+              echo "  test [pytest-args]                      run the test suite"
               echo "  docs-serve [port]                       serve docs on http://localhost:4000"
               echo "  uvicorn ytdlfin.main:app --reload       start the app"
             fi

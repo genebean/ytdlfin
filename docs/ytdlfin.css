@@ -1,0 +1,165 @@
+/* ytdlfin docs shared styles — brand tokens, nav, footer, theme picker */
+
+/* === Brand color tokens === */
+:root {
+  --spacing: 1rem;
+  --yt-pink:         #e040a8;
+  --yt-purple:       #8b5cf6;
+  --yt-blue:         #38b8f2;
+  --yt-gradient:     linear-gradient(90deg, var(--yt-pink), var(--yt-purple), var(--yt-blue));
+  --yt-gradient-135: linear-gradient(135deg, var(--yt-pink) 0%, var(--yt-purple) 50%, var(--yt-blue) 100%);
+  --yt-surface:      #eceef8;
+  --yt-card:         #f4f5fc;
+  --yt-nav:          rgba(240,241,251,0.92);
+  --yt-border:       #d8daea;
+  --yt-text:         #1a1c2e;
+  --yt-muted:        #6b7280;
+  --pico-background-color:      #eceef8;
+  --pico-card-background-color: #f4f5fc;
+}
+[data-theme="dark"] {
+  --yt-surface:      #0e0f1a;
+  --yt-card:         #161827;
+  --yt-nav:          rgba(14,15,26,0.88);
+  --yt-border:       #2a2d44;
+  --yt-text:         #e8eaf6;
+  --yt-muted:        #8891b0;
+  --pico-background-color:      #0e0f1a;
+  --pico-card-background-color: #161827;
+  --pico-muted-background:      #1e1f35;
+  --pico-muted-border-color:    #2a2d44;
+}
+body { background-color: var(--yt-surface); }
+
+/* === Sticky nav with frosted glass + gradient underline === */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--yt-nav);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--yt-border);
+}
+header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--yt-gradient);
+  pointer-events: none;
+}
+
+/* === Brand === */
+nav .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-family: 'Sora', sans-serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+.brand-ytdl { color: var(--yt-text); }
+.brand-fin {
+  background: var(--yt-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* === Nav links === */
+nav ul { list-style: none; }
+nav a:not(.brand) {
+  color: var(--yt-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.15s;
+}
+nav a:not(.brand):hover { color: var(--yt-blue); }
+nav a.nav-active { color: var(--yt-blue) !important; font-weight: 600; }
+
+/* === Theme picker === */
+.theme-picker {
+  display: inline-flex;
+  border: 1px solid var(--yt-border);
+  border-radius: var(--pico-border-radius);
+  overflow: hidden;
+}
+.theme-picker button {
+  background: none;
+  border: none;
+  border-right: 1px solid var(--yt-border);
+  padding: 0.2em 0.55em;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  cursor: pointer;
+  color: var(--yt-muted);
+  margin: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.theme-picker button:last-child { border-right: none; }
+.theme-picker button.active {
+  background: var(--yt-gradient-135);
+  color: white;
+}
+.theme-picker button:hover:not(.active) {
+  background: var(--yt-border);
+  color: var(--yt-text);
+}
+
+/* === Footer === */
+footer {
+  margin-top: 3rem;
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 0.85em;
+  color: var(--yt-muted);
+  border-top: 1px solid var(--yt-border);
+}
+footer a { color: inherit; text-decoration: none; }
+footer a:hover { color: var(--yt-blue); }
+
+/* === Hamburger === */
+.nav-hamburger {
+  display: none;
+  background: none;
+  border: 1px solid var(--yt-border);
+  border-radius: var(--pico-border-radius);
+  padding: 0.25em 0.55em;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  margin: 0;
+  transition: border-color 0.15s;
+}
+.nav-hamburger:hover { border-color: var(--yt-purple); }
+@media (max-width: 640px) {
+  nav > ul:first-child { width: 100%; justify-content: space-between; }
+  .nav-hamburger { display: block; }
+  nav { position: relative; }
+  nav > ul.nav-links {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    right: 0;
+    z-index: 200;
+    flex-direction: column;
+    gap: 0.25rem;
+    width: max-content;
+    max-width: calc(100vw - 2rem);
+    padding: 0.75rem 1rem;
+    background: var(--yt-card);
+    border: 1px solid var(--yt-border);
+    border-top: 2px solid var(--yt-purple);
+    border-radius: var(--pico-border-radius);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  }
+  nav > ul.nav-links.open { display: flex; }
+  nav > ul.nav-links li { list-style: none; }
+}
