@@ -199,6 +199,7 @@ in
         ADMIN_GROUP = cfg.settings.oidcAdminGroup;
         USER_GROUP = cfg.settings.oidcUserGroup;
         LOG_LEVEL = cfg.settings.logLevel;
+        MEDIA_DIRECTORIES = lib.concatStringsSep ":" (map toString cfg.settings.mediaDirectories);
         # Always true when deployed via NixOS module — the service is expected
         # to sit behind an HTTPS reverse proxy (e.g. nginx). Marks session
         # cookies Secure and enables correct scheme detection via proxy headers.

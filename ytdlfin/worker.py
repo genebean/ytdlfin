@@ -76,10 +76,11 @@ async def process_download(conn: aiosqlite.Connection, record: dict) -> None:
         logger.info("Download %d skipped (already in archive): %s", download_id, url)
         await database.set_download_skipped(conn, download_id, "already in archive")
 
-    except Exception as exc:
-        error_msg = str(exc)
-        logger.exception("Download %d failed: %s", download_id, error_msg)
-        await database.set_download_failed(conn, download_id, error_msg)
+    except Exception:
+        logger.exception("Download %d failed: %s", download_id, url)
+        await database.set_download_failed(
+            conn, download_id, "Download failed — check server logs for details."
+        )
 
     finally:
         # Always clean up staging if it still exists (i.e., move failed or error occurred).
