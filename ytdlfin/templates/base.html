@@ -48,10 +48,10 @@
       <ul class="nav-links" id="nav-links">
         <li><a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Queue</a></li>
         <li><a href="/history" class="{% if request.url.path == '/history' %}nav-active{% endif %}">History</a></li>
-        <li><a href="https://genebean.github.io/ytdlfin/" target="_blank" rel="noopener">Docs</a></li>
         {% if user and user.is_admin %}
         <li><a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}">Admin</a></li>
         {% endif %}
+        <li><a href="https://genebean.github.io/ytdlfin/" target="_blank" rel="noopener">Docs</a></li>
         <li>
           <div class="theme-picker" role="group" aria-label="Theme">
             <button type="button" id="theme-auto"  onclick="setThemeMode('auto')">auto</button>
