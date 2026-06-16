@@ -11,78 +11,110 @@
     })();
   </script>
   <title>ytdlfin — Implementation Spec</title>
+  <link rel="icon" href="../images/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/favicon-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
   <link
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css"
     integrity="sha384-L1dWfspMTHU/ApYnFiMz2QID/PlP1xCW9visvBdbEkOLkSSWsP6ZJWhPw6apiXxU"
     crossorigin="anonymous"
   />
+  <link rel="stylesheet" href="../ytdlfin.css" />
   <style>
-    :root { --spacing: 1rem; }
-    nav .brand { font-weight: bold; font-size: 1.1rem; text-decoration: none; color: inherit; }
-    nav ul { list-style: none; }
-    nav a { text-decoration: none; }
-    .hero { padding: 2.5rem 0 1.5rem; border-bottom: 1px solid var(--pico-muted-border-color); margin-bottom: 2rem; }
-    .hero h1 { margin-bottom: 0.4rem; border: none; padding: 0; }
-    .hero p { color: var(--pico-muted-color); margin: 0; font-size: 1.05rem; }
-    h2 { margin-top: 2.5rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--pico-muted-border-color); }
-    h3 { margin-top: 1.5rem; }
+    /* === Hero === */
+    .hero {
+      padding: 2.5rem 0 1.5rem;
+      border-bottom: 1px solid var(--yt-border);
+      margin-bottom: 2rem;
+    }
+    .hero h1 {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: var(--yt-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      margin-bottom: 0.4rem;
+      border: none;
+      padding: 0;
+    }
+    .hero p { color: var(--yt-muted); margin: 0; font-size: 1.05rem; }
+
+    /* === Content typography === */
+    h2 {
+      margin-top: 2.5rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--yt-border);
+      color: var(--yt-text);
+    }
+    h3 { margin-top: 1.5rem; color: var(--yt-text); }
+
     pre {
-      background: var(--pico-card-background-color);
-      border: 1px solid var(--pico-muted-border-color);
+      background: var(--yt-card);
+      border: 1px solid var(--yt-border);
       border-radius: var(--pico-border-radius);
       padding: 1em;
       overflow-x: auto;
       font-size: 0.9em;
       line-height: 1.5;
     }
-    pre code { background: none; padding: 0; font-size: inherit; }
+    pre code { background: none; padding: 0; font-size: inherit; border: none; }
     code {
-      background: var(--pico-card-background-color);
-      border: 1px solid var(--pico-muted-border-color);
+      background: var(--yt-card);
+      border: 1px solid var(--yt-border);
       padding: 0.1em 0.35em;
       border-radius: 3px;
       font-size: 0.88em;
     }
     table { font-size: 0.93rem; }
+
     .note {
-      background: var(--pico-card-background-color);
-      border-left: 3px solid var(--pico-primary);
+      background: var(--yt-card);
+      border-left: 3px solid var(--yt-purple);
       border-radius: 0 var(--pico-border-radius) var(--pico-border-radius) 0;
       padding: 0.75em 1em;
       margin: 1em 0;
     }
-    .note strong { color: var(--pico-primary); }
-    dl dt { font-weight: 600; margin-top: 1.25rem; }
-    dl dd { margin-left: 1.5rem; color: var(--pico-muted-color); }
-    dl dd code { color: var(--pico-color); }
-    #theme-toggle { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0.2em 0.4em; line-height: 1; color: inherit; }
-    footer { margin-top: 3rem; padding: 1.5rem 0; border-top: 1px solid var(--pico-muted-border-color); text-align: center; font-size: 0.85em; color: var(--pico-muted-color); }
-    footer a { color: inherit; }
-    .nav-hamburger { display: none; background: none; border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); padding: 0.25em 0.55em; font-size: 1.1rem; line-height: 1; cursor: pointer; color: inherit; margin: 0; }
-    @media (max-width: 640px) {
-      nav > ul:first-child { width: 100%; justify-content: space-between; }
-      .nav-hamburger { display: block; }
-      nav { position: relative; }
-      nav > ul.nav-links { display: none; position: absolute; top: calc(100% + 0.25rem); right: 0; z-index: 200; flex-direction: column; gap: 0.25rem; width: max-content; max-width: calc(100vw - 2rem); padding: 0.75rem 1rem; background: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
-      nav > ul.nav-links.open { display: flex; }
-      nav > ul.nav-links li { list-style: none; }
-    }
+    .note strong { color: var(--yt-purple); }
+
+    dl dt { font-weight: 600; margin-top: 1.25rem; color: var(--yt-text); }
+    dl dd { margin-left: 1.5rem; color: var(--yt-muted); }
+    dl dd code { color: var(--yt-text); }
+
   </style>
 </head>
 <body>
   <header class="container">
     <nav>
       <ul>
-        <li><a href="../index.html" class="brand">ytdlfin</a></li>
         <li>
-          <button class="nav-hamburger" id="nav-toggle" aria-label="Menu" aria-expanded="false" onclick="toggleNav()">☰</button>
+          <a href="../index.html" class="brand">
+            <img src="../images/ytdlfin-icon.png" alt="" aria-hidden="true" width="24" height="24" style="flex-shrink:0;border-radius:4px" />
+            <span class="brand-ytdl">ytdl</span><span class="brand-fin">fin</span>
+          </a>
+        </li>
+        <li>
+          <button id="nav-toggle" class="nav-hamburger" aria-label="Menu" aria-expanded="false" onclick="toggleNav()">☰</button>
         </li>
       </ul>
       <ul class="nav-links" id="nav-links">
-        <li><a href="../index.html">← Docs home</a></li>
+        <li><a href="../index.html">Docs home</a></li>
+        <li><a href="spec.html" class="nav-active">Spec</a></li>
         <li><a href="https://github.com/genebean/ytdlfin" target="_blank" rel="noopener">GitHub</a></li>
-        <li><button id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark theme"></button></li>
+        <li>
+          <div class="theme-picker" role="group" aria-label="Theme">
+            <button type="button" id="theme-auto"  onclick="setThemeMode('auto')">auto</button>
+            <button type="button" id="theme-light" onclick="setThemeMode('light')">☀️</button>
+            <button type="button" id="theme-dark"  onclick="setThemeMode('dark')">🌙</button>
+          </div>
+        </li>
       </ul>
     </nav>
   </header>
@@ -135,10 +167,15 @@
 ├── pyproject.toml
 ├── ytdlfin/
 │   ├── __init__.py
-│   ├── main.py             # FastAPI app factory, lifespan, middleware, all routes
+│   ├── main.py             # FastAPI app factory, lifespan, middleware, exception handlers
 │   ├── auth.py             # OIDC flow, session helpers, get_current_user/require_admin
 │   ├── db.py               # aiosqlite helpers, schema init, all CRUD
-│   ├── models.py           # Pydantic request/response models
+│   ├── models.py           # Pydantic request/response models + normalize_quality()
+│   ├── utils.py            # Shared: templates, _render, validation, _execute_create_download
+│   ├── routers/
+│   │   ├── pages.py        # HTML page routes: /, /history, /admin, /auth/denied, /downloads
+│   │   ├── downloads.py    # Queue HTMX partials + JSON API
+│   │   └── categories.py   # Category CRUD + HTMX partials
 │   ├── worker.py           # asyncio download queue, process_download, startup recovery
 │   ├── ytdlp.py            # yt-dlp wrapper: extract_info, download, staging
 │   ├── nfo.py              # NFO XML generation from yt-dlp info dict
@@ -438,16 +475,25 @@ services.ytdlfin = {
   </footer>
 
   <script>
-    function applyTheme(theme) {
-      document.documentElement.setAttribute('data-theme', theme);
-      var btn = document.getElementById('theme-toggle');
-      if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    function systemPrefersDark() {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
-    function toggleTheme() {
-      var current = document.documentElement.getAttribute('data-theme');
-      var next = current === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('ytdlfin-theme', next);
-      applyTheme(next);
+    function applyTheme(theme, stored) {
+      document.documentElement.setAttribute('data-theme', theme);
+      var mode = stored === null ? 'auto' : stored;
+      ['auto', 'light', 'dark'].forEach(function (m) {
+        var btn = document.getElementById('theme-' + m);
+        if (btn) btn.classList.toggle('active', m === mode);
+      });
+    }
+    function setThemeMode(mode) {
+      if (mode === 'auto') {
+        localStorage.removeItem('ytdlfin-theme');
+        applyTheme(systemPrefersDark() ? 'dark' : 'light', null);
+      } else {
+        localStorage.setItem('ytdlfin-theme', mode);
+        applyTheme(mode, mode);
+      }
     }
     function toggleNav() {
       var links = document.getElementById('nav-links');
@@ -463,9 +509,12 @@ services.ytdlfin = {
         toggle.setAttribute('aria-expanded', 'false');
       }
     });
-    applyTheme(document.documentElement.getAttribute('data-theme') || 'light');
+    var _stored = localStorage.getItem('ytdlfin-theme');
+    applyTheme(document.documentElement.getAttribute('data-theme') || 'light', _stored);
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
-      if (!localStorage.getItem('ytdlfin-theme')) applyTheme(e.matches ? 'dark' : 'light');
+      if (!localStorage.getItem('ytdlfin-theme')) {
+        applyTheme(e.matches ? 'dark' : 'light', null);
+      }
     });
   </script>
 </body>

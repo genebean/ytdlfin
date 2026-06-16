@@ -1,6 +1,6 @@
 # ytdlfin
 
-![ytdlfin](images/ytdlfin-banner.png)
+![ytdlfin](images/ytdlfin-readme-banner.webp)
 
 Self-hosted video downloader for Jellyfin. Paste a URL, pick a category, and the file
 lands in the right Jellyfin directory with NFO metadata and poster art — no manual
