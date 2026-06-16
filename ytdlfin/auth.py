@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 
 from authlib.integrations.starlette_client import OAuth
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from starlette.responses import RedirectResponse
 
 # ── Configuration ─────────────────────────────────────────────────────────────
@@ -154,5 +154,12 @@ async def callback(request: Request):
 
 @router.post("/logout")
 async def logout(request: Request):
+    # CSRF guard: verify the request originates from this app.
+    # Browsers always set Origin on cross-origin form POSTs; if it's present
+    # and doesn't match our host, reject the request.
+    host = request.headers.get("host", "")
+    origin = request.headers.get("origin") or request.headers.get("referer", "")
+    if origin and host and host not in origin:
+        raise HTTPException(403, "Forbidden")
     request.session.clear()
     return RedirectResponse(url="/auth/login", status_code=303)
