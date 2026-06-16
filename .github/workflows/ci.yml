@@ -4,6 +4,14 @@ on:
   pull_request:
 
 jobs:
+  css-sync:
+    name: css sync check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: verify app and docs CSS are identical
+        run: diff ytdlfin/static/ytdlfin.css docs/ytdlfin.css
+
   pre-commit:
     name: pre-commit hooks
     runs-on: ubuntu-latest

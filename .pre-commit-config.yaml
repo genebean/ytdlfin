@@ -27,3 +27,11 @@ repos:
         language: system
         types: [nix]
         pass_filenames: true
+
+      - id: css-sync-check
+        name: ytdlfin.css — app and docs copies must be identical
+        entry: bash
+        args: ["-c", "diff -q ytdlfin/static/ytdlfin.css docs/ytdlfin.css || (echo 'ytdlfin/static/ytdlfin.css and docs/ytdlfin.css differ — copy one to the other'; exit 1)"]
+        language: system
+        pass_filenames: false
+        always_run: true
