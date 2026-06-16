@@ -6,6 +6,7 @@ import asyncio
 import logging
 import os
 import shutil
+import time
 from pathlib import Path
 
 import yt_dlp
@@ -33,10 +34,25 @@ class AlreadyInArchive(Exception):
     pass
 
 
+_info_cache: dict[str, tuple[float, dict]] = {}
+_INFO_TTL = 300  # seconds; covers the gap between resolution picker and worker
+
+
 def extract_info(url: str) -> dict:
-    """Run yt-dlp extract_info synchronously (call via run_in_executor)."""
+    """Run yt-dlp extract_info synchronously (call via run_in_executor).
+
+    Results are cached for _INFO_TTL seconds so that a worker download
+    triggered shortly after the resolution picker doesn't repeat the
+    metadata network round-trip.
+    """
+    now = time.monotonic()
+    entry = _info_cache.get(url)
+    if entry and now < entry[0]:
+        return entry[1]
     with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True}) as ydl:
-        return ydl.extract_info(url, download=False)
+        info = ydl.extract_info(url, download=False)
+    _info_cache[url] = (now + _INFO_TTL, info)
+    return info
 
 
 def get_available_resolutions(url: str) -> list[int]:

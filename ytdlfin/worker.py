@@ -66,7 +66,7 @@ async def process_download(conn: aiosqlite.Connection, record: dict) -> None:
 
         # Step 3: Atomic move from staging to final destination.
         final_path = Path(category_path) / folder_name
-        shutil.move(str(staging_dir), str(final_path))
+        await loop.run_in_executor(None, lambda: shutil.move(str(staging_dir), str(final_path)))
         staging_dir = None  # Move succeeded; no cleanup needed.
 
         await database.set_download_done(conn, download_id, str(final_path))
@@ -85,7 +85,9 @@ async def process_download(conn: aiosqlite.Connection, record: dict) -> None:
     finally:
         # Always clean up staging if it still exists (i.e., move failed or error occurred).
         if staging_dir is not None and staging_dir.exists():
-            shutil.rmtree(staging_dir, ignore_errors=True)
+            await asyncio.get_running_loop().run_in_executor(
+                None, lambda: shutil.rmtree(staging_dir, ignore_errors=True)
+            )
 
 
 async def download_worker(conn: aiosqlite.Connection, queue: asyncio.Queue) -> None:
