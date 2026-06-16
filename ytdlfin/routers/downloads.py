@@ -5,11 +5,13 @@ from __future__ import annotations
 import asyncio
 import logging
 
+import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from .. import db as database
 from ..auth import get_current_user
+from ..db import get_db
 from ..models import DownloadRequest
 from ..utils import _execute_create_download, _validate_url_scheme, templates
 from ..ytdlp import get_available_resolutions
@@ -19,9 +21,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-async def _queue_partial_response(request: Request, user: dict) -> HTMLResponse:
+async def _queue_partial_response(
+    request: Request, user: dict, conn: aiosqlite.Connection
+) -> HTMLResponse:
     """Render the queue partial with all context it needs."""
-    conn = request.app.state.db
     queue = await database.get_queue(conn)
     categories = await database.list_categories(conn)
     return templates.TemplateResponse(
@@ -65,18 +68,25 @@ async def api_resolutions(
 # ── HTMX partial: active queue ────────────────────────────────────────────────
 
 @router.get("/api/queue", response_class=HTMLResponse)
-async def api_queue(request: Request, user=Depends(get_current_user)):
+async def api_queue(
+    request: Request,
+    user=Depends(get_current_user),
+    conn: aiosqlite.Connection = Depends(get_db),
+):
     """Returns an HTML partial for the queue section (polled every 3s by HTMX)."""
-    return await _queue_partial_response(request, user)
+    return await _queue_partial_response(request, user, conn)
 
 
 @router.post("/api/queue/start", response_class=HTMLResponse)
-async def api_queue_start(request: Request, user=Depends(get_current_user)):
+async def api_queue_start(
+    request: Request,
+    user=Depends(get_current_user),
+    conn: aiosqlite.Connection = Depends(get_db),
+):
     """Enqueue all pending downloads so the worker starts processing them."""
-    conn = request.app.state.db
     for pid in await database.get_pending_ids(conn):
         await request.app.state.queue.put(pid)
-    return await _queue_partial_response(request, user)
+    return await _queue_partial_response(request, user, conn)
 
 
 @router.patch("/api/downloads/{download_id}", response_class=HTMLResponse)
@@ -84,9 +94,9 @@ async def api_update_download(
     download_id: int,
     request: Request,
     user=Depends(get_current_user),
+    conn: aiosqlite.Connection = Depends(get_db),
 ):
     """Change the category of a pending download (HTMX inline edit)."""
-    conn = request.app.state.db
     record = await database.get_download(conn, download_id)
     if not record:
         raise HTTPException(404, "Download not found")
@@ -116,10 +126,12 @@ async def api_update_download(
 
 @router.get("/partials/queue/{download_id}", response_class=HTMLResponse)
 async def partial_queue_row(
-    download_id: int, request: Request, user=Depends(get_current_user)
+    download_id: int,
+    request: Request,
+    user=Depends(get_current_user),
+    conn: aiosqlite.Connection = Depends(get_db),
 ):
     """Normal queue row (used to cancel an in-progress edit)."""
-    conn = request.app.state.db
     record = await database.get_download(conn, download_id)
     if not record:
         raise HTTPException(404)
@@ -133,10 +145,12 @@ async def partial_queue_row(
 
 @router.get("/partials/queue/{download_id}/edit", response_class=HTMLResponse)
 async def partial_queue_row_edit(
-    download_id: int, request: Request, user=Depends(get_current_user)
+    download_id: int,
+    request: Request,
+    user=Depends(get_current_user),
+    conn: aiosqlite.Connection = Depends(get_db),
 ):
     """Edit-mode queue row with category dropdown."""
-    conn = request.app.state.db
     record = await database.get_download(conn, download_id)
     if not record:
         raise HTTPException(404)
@@ -157,9 +171,10 @@ async def api_create_download(
     payload: DownloadRequest,
     request: Request,
     user=Depends(get_current_user),
+    conn: aiosqlite.Connection = Depends(get_db),
 ):
     return await _execute_create_download(
-        request.app.state.db,
+        conn,
         payload.url,
         payload.category_id,
         payload.quality,
@@ -175,9 +190,10 @@ async def api_list_downloads(
     per_page: int = 20,
     status: str = "",
     user=Depends(get_current_user),
+    conn: aiosqlite.Connection = Depends(get_db),
 ):
     return await database.list_downloads(
-        request.app.state.db,
+        conn,
         page=page,
         per_page=per_page,
         status=status or None,
@@ -191,8 +207,8 @@ async def api_cancel_download(
     download_id: int,
     request: Request,
     user=Depends(get_current_user),
+    conn: aiosqlite.Connection = Depends(get_db),
 ):
-    conn = request.app.state.db
     record = await database.get_download(conn, download_id)
     if not record:
         raise HTTPException(404, "Download not found")

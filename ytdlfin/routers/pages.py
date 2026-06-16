@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from .. import db as database
 from ..auth import flash, get_current_user, require_admin
+from ..db import get_db
 from ..models import normalize_quality
 from ..utils import _execute_create_download, _render, templates
 
@@ -29,9 +31,13 @@ async def auth_denied(request: Request):
 
 
 @router.get("/", response_class=HTMLResponse)
-async def index(request: Request, user=Depends(get_current_user)):
-    categories = await database.list_categories(request.app.state.db)
-    queue = await database.get_queue(request.app.state.db)
+async def index(
+    request: Request,
+    user=Depends(get_current_user),
+    conn: aiosqlite.Connection = Depends(get_db),
+):
+    categories = await database.list_categories(conn)
+    queue = await database.get_queue(conn)
     return _render(
         "index.html",
         request,
@@ -48,9 +54,10 @@ async def history_page(
     page: int = 1,
     status: str = "",
     user=Depends(get_current_user),
+    conn: aiosqlite.Connection = Depends(get_db),
 ):
     result = await database.list_downloads(
-        request.app.state.db,
+        conn,
         page=page,
         per_page=20,
         status=status or None,
@@ -69,13 +76,21 @@ async def history_page(
 
 
 @router.get("/admin", response_class=HTMLResponse)
-async def admin_page(request: Request, user=Depends(require_admin)):
-    categories = await database.list_categories(request.app.state.db)
+async def admin_page(
+    request: Request,
+    user=Depends(require_admin),
+    conn: aiosqlite.Connection = Depends(get_db),
+):
+    categories = await database.list_categories(conn)
     return _render("admin.html", request, categories=categories)
 
 
 @router.post("/downloads")
-async def submit_download(request: Request, user=Depends(get_current_user)):
+async def submit_download(
+    request: Request,
+    user=Depends(get_current_user),
+    conn: aiosqlite.Connection = Depends(get_db),
+):
     """
     Browser form POST. Validates, creates the DB record, and redirects to /
     with a flash message. Errors are surfaced as flash messages, not exceptions.
@@ -95,11 +110,11 @@ async def submit_download(request: Request, user=Depends(get_current_user)):
 
     try:
         await _execute_create_download(
-            request.app.state.db, url, category_id, quality, custom_title, user
+            conn, url, category_id, quality, custom_title, user
         )
     except HTTPException as exc:
         flash(request, exc.detail, "error")
         return RedirectResponse(url="/", status_code=303)
 
-    flash(request, "Added to queue. Click “Start downloads” when ready.", "success")
+    flash(request, 'Added to queue. Click "Start downloads" when ready.', "success")
     return RedirectResponse(url="/", status_code=303)
