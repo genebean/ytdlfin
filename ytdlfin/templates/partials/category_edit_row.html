@@ -15,6 +15,7 @@
       hx-target="#cat-row-{{ cat.id }}"
       hx-swap="outerHTML"
       hx-include="closest tr"
+      hx-on:htmx:response-error="this.closest('tr').outerHTML = event.detail.xhr.response"
     >Save</button>
     <button
       type="button"

@@ -33,6 +33,7 @@
             hx-target="#cat-row-{{ cat.id }}"
             hx-swap="outerHTML"
             hx-on:htmx:after-request="document.getElementById('del-dialog-{{ cat.id }}') && document.getElementById('del-dialog-{{ cat.id }}').close()"
+            hx-on:htmx:response-error="this.closest('tr').outerHTML = event.detail.xhr.response"
           >Delete</button>
         </footer>
       </article>
