@@ -428,3 +428,43 @@ def test_category_has_active_downloads(db):
         assert await database.category_has_active_downloads(db, cat["id"]) is False
 
     asyncio.run(_run())
+
+
+# ── _build_where ──────────────────────────────────────────────────────────────
+
+
+def test_build_where_no_filters():
+    from ytdlfin.db import _build_where
+    clause, params = _build_where(status=None, user_email=None, is_admin=False)
+    assert clause == ""
+    assert params == []
+
+
+def test_build_where_status_only():
+    from ytdlfin.db import _build_where
+    clause, params = _build_where(status="done", user_email=None, is_admin=False)
+    assert "status = ?" in clause
+    assert params == ["done"]
+
+
+def test_build_where_user_filter():
+    from ytdlfin.db import _build_where
+    clause, params = _build_where(status=None, user_email="u@example.com", is_admin=False)
+    assert "requested_by_email = ?" in clause
+    assert params == ["u@example.com"]
+
+
+def test_build_where_admin_skips_user_filter():
+    from ytdlfin.db import _build_where
+    clause, params = _build_where(status=None, user_email="u@example.com", is_admin=True)
+    assert clause == ""
+    assert params == []
+
+
+def test_build_where_status_and_user():
+    from ytdlfin.db import _build_where
+    clause, params = _build_where(status="pending", user_email="u@example.com", is_admin=False)
+    assert "status = ?" in clause
+    assert "requested_by_email = ?" in clause
+    assert "AND" in clause
+    assert params == ["pending", "u@example.com"]

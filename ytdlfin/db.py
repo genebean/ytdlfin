@@ -181,6 +181,24 @@ async def get_download(db: aiosqlite.Connection, download_id: int) -> dict | Non
         return _row(await cur.fetchone())
 
 
+def _build_where(
+    status: str | None,
+    user_email: str | None,
+    is_admin: bool,
+) -> tuple[str, list[Any]]:
+    """Return (WHERE clause, params) for list_downloads filters."""
+    conditions: list[str] = []
+    params: list[Any] = []
+    if status:
+        conditions.append("status = ?")
+        params.append(status)
+    if not is_admin and user_email:
+        conditions.append("requested_by_email = ?")
+        params.append(user_email)
+    clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    return clause, params
+
+
 async def list_downloads(
     db: aiosqlite.Connection,
     page: int = 1,
@@ -190,18 +208,7 @@ async def list_downloads(
     is_admin: bool = False,
 ) -> dict:
     """Return paginated downloads. Admins see all; users see only their own."""
-    conditions = []
-    params: list[Any] = []
-
-    if status:
-        conditions.append("status = ?")
-        params.append(status)
-
-    if not is_admin and user_email:
-        conditions.append("requested_by_email = ?")
-        params.append(user_email)
-
-    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    where, params = _build_where(status, user_email, is_admin)
     offset = (page - 1) * per_page
 
     async with db.execute(
