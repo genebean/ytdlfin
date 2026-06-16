@@ -130,13 +130,13 @@ in
 
       trustedProxyIps = lib.mkOption {
         type = lib.types.str;
-        default = "*";
+        default = "127.0.0.1";
         description = ''
           Comma-separated list of upstream proxy IPs allowed to set
           X-Forwarded-For and X-Forwarded-Proto headers, or "*" to trust all.
-          The default ("*") is safe for LAN deployments behind a physical
-          firewall. Set to "127.0.0.1" if nginx runs on the same host and
-          you want stricter trust.
+          Defaults to "127.0.0.1" for the standard same-host nginx deployment.
+          Set to "*" to trust all proxies (acceptable for isolated LAN
+          deployments behind a physical firewall).
         '';
       };
     };
