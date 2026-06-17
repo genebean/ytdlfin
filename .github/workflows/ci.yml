@@ -54,7 +54,7 @@ jobs:
       - name: run tests
         run: nix develop --command pytest tests/ -v --junitxml=pytest-results.xml
       - name: publish test results
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v3
         if: always()
         with:
           name: pytest results
