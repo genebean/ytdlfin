@@ -55,7 +55,8 @@ jobs:
         env:
           TAG_SUFFIX: ${{ matrix.tag-suffix }}
         run: |
-          skopeo copy \
+          sudo skopeo copy \
+            --authfile "${HOME}/.docker/config.json" \
             oci-archive:result \
             "docker://${IMAGE}:latest-${TAG_SUFFIX}"
 
@@ -65,7 +66,8 @@ jobs:
           VERSION: ${{ steps.meta.outputs.version }}
           TAG_SUFFIX: ${{ matrix.tag-suffix }}
         run: |
-          skopeo copy \
+          sudo skopeo copy \
+            --authfile "${HOME}/.docker/config.json" \
             oci-archive:result \
             "docker://${IMAGE}:${VERSION}-${TAG_SUFFIX}"
 
