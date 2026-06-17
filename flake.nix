@@ -35,58 +35,17 @@
           pytest-cov
         ];
 
-      mkPackage =
-        pkgs:
-        pkgs.python3.pkgs.buildPythonApplication {
-          pname = "ytdlfin";
-          version = "0.1.0";
-          pyproject = true;
-
-          src = ./.;
-
-          build-system = [ pkgs.python3.pkgs.hatchling ];
-
-          dependencies = pythonDeps pkgs.python3.pkgs;
-
-          # ffmpeg must be on PATH for yt-dlp to mux video and audio streams.
-          makeWrapperArgs = [ "--prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.ffmpeg ]}" ];
-
-          meta = {
-            description = "Self-hosted video downloader for Jellyfin";
-            mainProgram = "ytdlfin";
-          };
+      ourPkgs =
+        system:
+        import ./pkgs {
+          pkgs = pkgsFor system;
+          inherit pythonDeps;
         };
 
       mkDevShell =
         pkgs:
         let
-          runTests = pkgs.writeScriptBin "ytdlfin-test" ''
-            #!${pkgs.bash}/bin/bash
-            cd "$(git rev-parse --show-toplevel)"
-            exec pytest tests/ --cov=ytdlfin --cov-report=term-missing "$@"
-          '';
-          docsServe = pkgs.writeScriptBin "ytdlfin-docs-serve" ''
-            #!${pkgs.python3}/bin/python3
-            import http.server, os, subprocess, sys
-
-            port = int(sys.argv[1]) if len(sys.argv) > 1 else 4000
-
-            proj_root = subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()
-            os.chdir(os.path.join(proj_root, "docs"))
-
-            class QuietHTTPServer(http.server.ThreadingHTTPServer):
-                def handle_error(self, request, client_address):
-                    if sys.exc_info()[0] in (BrokenPipeError, ConnectionResetError):
-                        return
-                    super().handle_error(request, client_address)
-
-            print(f"Docs available at http://localhost:{port}")
-            try:
-                with QuietHTTPServer(("0.0.0.0", port), http.server.SimpleHTTPRequestHandler) as httpd:
-                    httpd.serve_forever()
-            except KeyboardInterrupt:
-                print("\nStopped.")
-          '';
+          p = ourPkgs pkgs.system;
         in
         pkgs.mkShell {
           packages = [
@@ -101,8 +60,9 @@
             pkgs.nixfmt-tree
             # Image tools for resizing docs/static assets.
             pkgs.imagemagick
-            runTests
-            docsServe
+            p.run-tests
+            p.docs-serve
+            p.check-sri
           ];
 
           shellHook = ''
@@ -115,6 +75,7 @@
               echo ""
               echo "  test [pytest-args]                      run the test suite"
               echo "  docs-serve [port]                       serve docs on http://localhost:4000"
+              echo "  ytdlfin-check-sri                       verify CDN SRI hashes in HTML files"
               echo "  uvicorn ytdlfin.main:app --reload       start the app"
             fi
           '';
@@ -123,7 +84,8 @@
     in
     {
       packages = forAllSystems (system: {
-        default = mkPackage (pkgsFor system);
+        default = (ourPkgs system).ytdlfin;
+        check-sri = (ourPkgs system).check-sri;
       });
 
       # `nix fmt` — format all Nix files in the tree using nixfmt
