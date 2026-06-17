@@ -1,6 +1,40 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
+  "extends": ["config:recommended"],
+  "timezone": "America/New_York",
+  "schedule": ["before 6am on monday"],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "Group GitHub Actions updates into a single PR",
+      "groupName": "GitHub Actions",
+      "matchManagers": ["github-actions"]
+    },
+    {
+      "description": "Group CDN deps — SRI hashes must be updated manually alongside version bumps",
+      "groupName": "CDN dependencies",
+      "matchManagers": ["custom.regex"]
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track Pico CSS CDN version in app template and docs pages",
+      "managerFilePatterns": [
+        "/^ytdlfin/templates/base\\.html$/",
+        "/^docs/.*\\.html$/"
+      ],
+      "matchStrings": ["@picocss/pico@(?<currentValue>[^/]+)/"],
+      "depNameTemplate": "@picocss/pico",
+      "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "description": "Track HTMX CDN version in app base template",
+      "managerFilePatterns": ["/^ytdlfin/templates/base\\.html$/"],
+      "matchStrings": ["htmx\\.org@(?<currentValue>[^/]+)/"],
+      "depNameTemplate": "htmx.org",
+      "datasourceTemplate": "npm"
+    }
   ]
 }
