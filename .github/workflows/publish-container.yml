@@ -57,7 +57,7 @@ jobs:
         run: |
           sudo skopeo copy \
             --authfile "${HOME}/.docker/config.json" \
-            oci-archive:result \
+            docker-archive:result \
             "docker://${IMAGE}:latest-${TAG_SUFFIX}"
 
       - name: Push platform image (version tag)
@@ -68,7 +68,7 @@ jobs:
         run: |
           sudo skopeo copy \
             --authfile "${HOME}/.docker/config.json" \
-            oci-archive:result \
+            docker-archive:result \
             "docker://${IMAGE}:${VERSION}-${TAG_SUFFIX}"
 
   merge-manifest:
