@@ -19,7 +19,7 @@ in
 
     port = lib.mkOption {
       type = lib.types.port;
-      default = 8000;
+      default = 8001;
       description = "HTTP port to listen on.";
     };
 

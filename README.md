@@ -37,7 +37,6 @@ variable reference.
 Add ytdlfin as a flake input and include the module in your `nixosConfigurations`:
 
 ```nix
-# flake.nix
 inputs.ytdlfin = {
   url = "github:genebean/ytdlfin";
   inputs.nixpkgs.follows = "nixpkgs";
@@ -51,29 +50,16 @@ nixosConfigurations.yourhost = nixpkgs.lib.nixosSystem {
 };
 ```
 
-Then configure the service:
+See the [NixOS deployment guide](https://genebean.github.io/ytdlfin/deploy/nixos.html) for
+service configuration, nginx virtual host, sops-nix secret management, and all module options.
 
-```nix
-services.ytdlfin = {
-  enable = true;
-  user  = config.services.jellyfin.user;
-  group = config.services.jellyfin.group;
-  stagingDir = "/orico/jellyfin/.ytdlfin-staging";
-  environmentFile = config.sops.secrets.ytdlfin-env.path;
-  settings = {
-    oidcIssuerUrl   = "https://id.example.com";
-    oidcRedirectUri = "https://ytdlfin.example.com/auth/callback";
-    oidcAdminGroup  = "ytdlfin-admins";
-    oidcUserGroup   = "ytdlfin-users";
-    mediaDirectories = [ "/orico/jellyfin/data" ];
-  };
-};
-```
+## Container deployment (non-NixOS)
 
-The `environmentFile` must supply `SECRET_KEY`, `OIDC_CLIENT_ID`, and
-`OIDC_CLIENT_SECRET`. See the [spec](https://genebean.github.io/ytdlfin/reference/spec.html)
-for all module options, reverse proxy setup, staging directory requirements, and
-backup recommendations.
+A multi-arch OCI image (`linux/amd64` + `linux/arm64`) is published to GHCR on every push to
+`main` and on every `vX.Y.Z` tag: `ghcr.io/genebean/ytdlfin:latest`
+
+See the [container deployment guide](https://genebean.github.io/ytdlfin/deploy/container.html)
+for the full walkthrough using rootless Podman. Starter files are in [`contrib/`](contrib/).
 
 ## Bugs and feedback
 

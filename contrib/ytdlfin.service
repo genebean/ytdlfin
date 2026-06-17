@@ -1,0 +1,50 @@
+# ytdlfin — optional systemd user unit for rootless Podman Compose
+#
+# This unit is OPTIONAL.  Use it if you want systemd to start and stop the
+# Podman Compose stack automatically.  Other orchestration tools (Puppet,
+# Ansible, etc.) can manage the compose stack directly instead.
+#
+# Installation (run as the jellyfin user, or with sudo -u jellyfin):
+#
+#   1. Copy this file:
+#        mkdir -p ~/.config/systemd/user
+#        cp ytdlfin.service ~/.config/systemd/user/
+#
+#   2. Point WorkingDirectory at the directory containing your compose.yml:
+#        Edit the WorkingDirectory= line below.
+#
+#   3. Enable linger so the user service starts at boot without a login session:
+#        sudo loginctl enable-linger jellyfin
+#
+#   4. Reload and enable:
+#        systemctl --user daemon-reload
+#        systemctl --user enable --now ytdlfin
+#
+# Useful commands (as the jellyfin user):
+#   systemctl --user status ytdlfin
+#   systemctl --user restart ytdlfin
+#   journalctl --user -u ytdlfin -f
+
+[Unit]
+Description=ytdlfin container stack (podman compose)
+Documentation=https://genebean.github.io/ytdlfin/deploy/container.html
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+# EDIT ME: path to the directory containing your compose.yml and ytdlfin.env
+WorkingDirectory=%h/.config/ytdlfin
+
+ExecStart=podman compose up --detach --pull=newer
+ExecStop=podman compose down
+
+# Pull updated images and recreate containers on reload
+# (systemctl --user reload ytdlfin)
+ExecReload=podman compose pull
+ExecReload=podman compose up --detach --force-recreate
+
+[Install]
+WantedBy=default.target

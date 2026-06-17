@@ -1,0 +1,65 @@
+# ytdlfin — rootless Podman deployment
+#
+# Prerequisites: Podman, podman-compose, Jellyfin, nginx + Let's Encrypt, PocketID (or other OIDC provider)
+# Full guide: https://genebean.github.io/ytdlfin/deploy/container.html
+#
+# Quick start:
+#   1. Copy this file and ytdlfin.env.example to a working directory.
+#   2. Rename ytdlfin.env.example → ytdlfin.env and fill in the secrets.
+#   3. Edit the environment and volume sections below (look for EDIT ME comments).
+#   4. Run as the jellyfin user: podman compose up -d
+
+name: ytdlfin
+
+services:
+  ytdlfin:
+    image: ghcr.io/genebean/ytdlfin:latest
+    restart: on-failure:5
+
+    # --userns=keep-id maps the UID/GID of the user running podman (i.e. the
+    # jellyfin user) into the container unchanged.  Files written to the
+    # mounted volumes will be owned by that same UID on the host, so Jellyfin
+    # can read them without any permission changes.
+    userns_mode: keep-id
+
+    # Secrets: SECRET_KEY, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET
+    env_file: ytdlfin.env
+
+    environment:
+      DATA_DIR: /data
+      STAGING_DIR: /staging
+      PORT: "8001"
+
+      OIDC_ISSUER_URL: https://id.example.com          # EDIT ME
+      OIDC_REDIRECT_URI: https://ytdlfin.example.com/auth/callback  # EDIT ME
+      ADMIN_GROUP: ytdlfin-admins                       # EDIT ME — must match PocketID group name exactly
+      USER_GROUP: ytdlfin-users                         # EDIT ME — must match PocketID group name exactly
+
+      # Must be true: the app expects to sit behind an HTTPS reverse proxy
+      # (nginx + Let's Encrypt).  This marks session cookies Secure and enables
+      # correct scheme detection from X-Forwarded-Proto.
+      HTTPS_ONLY: "true"
+      # The IP(s) of your nginx proxy.  "127.0.0.1" is correct when nginx runs
+      # on the same host.  Set to "*" only on a fully firewalled LAN.
+      TRUSTED_PROXY_IPS: "127.0.0.1"
+
+      LOG_LEVEL: info
+
+    volumes:
+      # Persistent data (SQLite database).  Back up this directory with restic.
+      - /var/lib/ytdlfin/data:/data
+
+      # Staging area for in-progress downloads.  For atomic moves, this must
+      # be on the same filesystem as your Jellyfin library paths below.
+      # EDIT ME — ideally something like /path/to/jellyfin/.ytdlfin-staging
+      - /var/lib/ytdlfin/staging:/staging
+
+      # Jellyfin media library.  Mount at the EXACT SAME absolute path as on
+      # the host so that category paths stored in the database remain valid
+      # inside the container.  Add one entry per library root.
+      # EDIT ME
+      - /path/to/jellyfin/media:/path/to/jellyfin/media
+
+    ports:
+      # Bind only to localhost — nginx terminates TLS and proxies here.
+      - "127.0.0.1:8001:8001"

@@ -33,7 +33,7 @@ if not SECRET_KEY or SECRET_KEY == "change-me-in-production":
         "SECRET_KEY must be set to a strong random value via the environment. "
         "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
     )
-PORT = int(os.environ.get("PORT", "8000"))
+PORT = int(os.environ.get("PORT", "8001"))
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "info")
 # Set HTTPS_ONLY=true when running behind an HTTPS reverse proxy (e.g. nginx).
 # Marks session cookies Secure so browsers only send them over TLS.

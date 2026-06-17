@@ -86,6 +86,7 @@
       packages = forAllSystems (system: {
         default = (ourPkgs system).ytdlfin;
         check-sri = (ourPkgs system).check-sri;
+        container = (ourPkgs system).container;
       });
 
       # `nix fmt` — format all Nix files in the tree using nixfmt
