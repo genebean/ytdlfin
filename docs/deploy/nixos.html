@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    (function () {
+      var stored = localStorage.getItem('ytdlfin-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', stored || (prefersDark ? 'dark' : 'light'));
+    })();
+  </script>
+  <title>ytdlfin — NixOS deployment</title>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="ytdlfin" />
+  <meta property="og:title" content="ytdlfin — NixOS deployment" />
+  <meta property="og:description" content="Deploy ytdlfin as a systemd service via the NixOS flake module." />
+  <meta property="og:image" content="https://genebean.github.io/ytdlfin/images/ytdlfin-banner.webp" />
+  <meta property="og:url" content="https://genebean.github.io/ytdlfin/deploy/nixos.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://genebean.github.io/ytdlfin/images/ytdlfin-banner.webp" />
+  <link rel="icon" href="../images/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="../images/favicon-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css"
+    integrity="sha384-L1dWfspMTHU/ApYnFiMz2QID/PlP1xCW9visvBdbEkOLkSSWsP6ZJWhPw6apiXxU"
+    crossorigin="anonymous"
+  />
+  <link rel="stylesheet" href="../ytdlfin.css" />
+  <style>
+    /* === Hero === */
+    .hero {
+      padding: 2.5rem 0 1.5rem;
+      border-bottom: 1px solid var(--yt-border);
+      margin-bottom: 2rem;
+    }
+    .hero h1 {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: var(--yt-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      margin-bottom: 0.4rem;
+      border: none;
+      padding: 0;
+    }
+    .hero p { color: var(--yt-muted); margin: 0; font-size: 1.05rem; }
+
+    /* === Content typography === */
+    h2 {
+      margin-top: 2.5rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--yt-border);
+      color: var(--yt-text);
+    }
+    h3 { margin-top: 1.5rem; color: var(--yt-text); }
+
+    pre {
+      background: var(--yt-card);
+      border: 1px solid var(--yt-border);
+      border-radius: var(--pico-border-radius);
+      padding: 1em;
+      overflow-x: auto;
+      font-size: 0.9em;
+      line-height: 1.5;
+    }
+    pre code { background: none; padding: 0; font-size: inherit; border: none; }
+    code {
+      background: var(--yt-card);
+      border: 1px solid var(--yt-border);
+      padding: 0.1em 0.35em;
+      border-radius: 3px;
+      font-size: 0.88em;
+    }
+    table { font-size: 0.93rem; }
+
+    .note {
+      background: var(--yt-card);
+      border-left: 3px solid var(--yt-purple);
+      border-radius: 0 var(--pico-border-radius) var(--pico-border-radius) 0;
+      padding: 0.75em 1em;
+      margin: 1em 0;
+    }
+    .note strong { color: var(--yt-purple); }
+
+    ol li { margin-bottom: 0.6rem; }
+    ol li:last-child { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul>
+        <li>
+          <a href="../index.html" class="brand">
+            <img src="../images/ytdlfin-icon.webp" alt="" aria-hidden="true" width="24" height="24" style="flex-shrink:0;border-radius:4px" />
+            <span class="brand-ytdl">ytdl</span><span class="brand-fin">fin</span>
+          </a>
+        </li>
+        <li>
+          <button id="nav-toggle" class="nav-hamburger" aria-label="Menu" aria-expanded="false" onclick="toggleNav()">☰</button>
+        </li>
+      </ul>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="../index.html">Docs home</a></li>
+        <li><a href="../reference/spec.html">Spec</a></li>
+        <li><a href="../brand.html">Brand</a></li>
+        <li><a href="https://github.com/genebean/ytdlfin" target="_blank" rel="noopener">GitHub</a></li>
+        <li>
+          <div class="theme-picker" role="group" aria-label="Theme">
+            <button type="button" id="theme-auto"  onclick="setThemeMode('auto')">auto</button>
+            <button type="button" id="theme-light" onclick="setThemeMode('light')">☀️</button>
+            <button type="button" id="theme-dark"  onclick="setThemeMode('dark')">🌙</button>
+          </div>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="hero">
+      <h1>NixOS deployment</h1>
+      <p>Deploy ytdlfin as a systemd service via the NixOS flake module</p>
+    </div>
+
+    <h2>Prerequisites</h2>
+    <div class="note">
+      <strong>Note:</strong> The following must already be in place before following this guide.
+      Installation and configuration of these components is not covered here.
+    </div>
+    <ul>
+      <li><strong>NixOS</strong> — with flakes enabled.</li>
+      <li><strong>Jellyfin</strong> — <code>services.jellyfin.enable = true</code> on the same host.</li>
+      <li><strong>nginx</strong> — the NixOS nginx module with <code>recommendedProxySettings = true</code> set at the service level.</li>
+      <li><strong>ACME / Let's Encrypt</strong> — <code>security.acme</code> configured with your email address and accepted terms.</li>
+      <li><strong>PocketID or another OIDC provider</strong> — with a client application registered for ytdlfin, yielding a client ID and client secret.</li>
+    </ul>
+
+    <h2>Add the flake input</h2>
+    <p>
+      Add ytdlfin as an input in your host flake and include the NixOS module in your system
+      configuration:
+    </p>
+    <pre><code class="language-nix">inputs.ytdlfin = {
+  url = "github:genebean/ytdlfin";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+
+nixosConfigurations.yourhost = nixpkgs.lib.nixosSystem {
+  modules = [
+    ytdlfin.nixosModules.default
+    ./hosts/yourhost/configuration.nix
+  ];
+};</code></pre>
+
+    <h2>Configure the service</h2>
+    <p>
+      Add the following to your host's NixOS configuration. The example below reflects a
+      recommended production setup: the service runs as the Jellyfin user, the staging directory
+      sits on the same filesystem as the Jellyfin library, and secrets are managed by sops-nix.
+    </p>
+    <pre><code class="language-nix">services.ytdlfin = {
+  enable = true;
+  user  = config.services.jellyfin.user;
+  group = config.services.jellyfin.group;
+  stagingDir = "/your/jellyfin/staging/.ytdlfin-staging";
+  environmentFile = config.sops.secrets.ytdlfin-env.path;
+  settings = {
+    oidcIssuerUrl   = "https://id.example.com";
+    oidcRedirectUri = "https://ytdlfin.example.com/auth/callback";
+    oidcAdminGroup  = "ytdlfin_admins";
+    oidcUserGroup   = "ytdlfin_users";
+    mediaDirectories = [ "/your/jellyfin/data" ];
+  };
+};</code></pre>
+    <div class="note">
+      <strong>User and group:</strong> Setting <code>user</code> and <code>group</code> to the
+      Jellyfin service account means ytdlfin already has write access to the Jellyfin media
+      library. No ACL changes or additional permissions are needed.
+    </div>
+    <div class="note">
+      <strong>mediaDirectories:</strong> Each path listed here is added to the systemd service's
+      <code>ReadWritePaths</code>. The hardened sandbox blocks all other filesystem writes, so
+      ytdlfin cannot write outside these paths.
+    </div>
+    <div class="note">
+      <strong>stagingDir:</strong> Place the staging directory on the same filesystem as your
+      Jellyfin library. When a download completes, ytdlfin moves it from <code>stagingDir</code>
+      into the target category directory. If both paths are on the same filesystem that move is an
+      atomic rename; if they are on different filesystems it becomes a full copy.
+    </div>
+
+    <h2>nginx virtual host</h2>
+    <p>
+      Add the ytdlfin virtual host to your nginx configuration. Because
+      <code>recommendedProxySettings = true</code> is set at the nginx service level, all required
+      proxy headers (<code>Host</code>, <code>X-Real-IP</code>, <code>X-Forwarded-For</code>,
+      <code>X-Forwarded-Proto</code>) are injected automatically. Do not add explicit
+      <code>proxy_set_header</code> lines to the ytdlfin vhost.
+    </p>
+    <pre><code class="language-nix">services.nginx = {
+  recommendedGzipSettings  = true;
+  recommendedOptimisation  = true;
+  recommendedProxySettings = true;   # sets Host, X-Real-IP, X-Forwarded-For, X-Forwarded-Proto automatically
+  recommendedTlsSettings   = true;
+
+  virtualHosts."ytdlfin.example.com" = {
+    enableACME = true;
+    acmeRoot   = null;
+    forceSSL   = true;
+    locations."/".proxyPass = "http://127.0.0.1:${toString config.services.ytdlfin.port}";
+  };
+};</code></pre>
+    <div class="note">
+      <strong>acmeRoot = null:</strong> This tells NixOS to use the ACME-managed certificate
+      directory directly rather than a manual webroot challenge path. It is the standard pattern
+      when <code>security.acme</code> is already configured system-wide.
+    </div>
+
+    <h2>Secret management (sops-nix)</h2>
+    <p>
+      The <code>environmentFile</code> option points to a file containing secrets that must not
+      appear in the Nix store. sops-nix is the recommended approach for NixOS: it decrypts
+      secrets at activation time and places them at a path only the service user can read.
+    </p>
+    <p>Declare the secret in your sops configuration:</p>
+    <pre><code class="language-nix">sops.secrets.ytdlfin-env = {
+  owner        = config.services.ytdlfin.user;
+  restartUnits = [ config.systemd.services.ytdlfin.name ];
+};</code></pre>
+    <p>
+      Any method that produces a file readable by the ytdlfin user works. If you do not use
+      sops-nix, ensure the file mode is <code>0600</code> and the owner matches
+      <code>services.ytdlfin.user</code>.
+    </p>
+    <p>The secret file must contain the following key-value pairs:</p>
+    <pre><code class="language-bash">SECRET_KEY=&lt;32+ random chars — generate with: openssl rand -hex 32&gt;
+OIDC_CLIENT_ID=&lt;client ID from PocketID&gt;
+OIDC_CLIENT_SECRET=&lt;client secret from PocketID&gt;</code></pre>
+    <p>Generate a strong secret key:</p>
+    <pre><code class="language-bash">openssl rand -hex 32</code></pre>
+
+    <h2>Module options reference</h2>
+    <p>All options exposed by <code>services.ytdlfin</code>:</p>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Option</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>services.ytdlfin.enable</code></td>
+            <td><code>false</code></td>
+            <td>Enable the ytdlfin service.</td>
+          </tr>
+          <tr>
+            <td><code>services.ytdlfin.port</code></td>
+            <td><code>8001</code></td>
+            <td>HTTP port the service listens on.</td>
+          </tr>
+          <tr>
+            <td><code>services.ytdlfin.dataDir</code></td>
+            <td><code>/var/lib/ytdlfin</code></td>
+            <td>Directory for <code>ytdlfin.db</code>. This is the only path that needs to be backed up.</td>
+          </tr>
+          <tr>
+            <td><code>services.ytdlfin.stagingDir</code></td>
+            <td><code>/var/lib/ytdlfin/staging</code></td>
+            <td>Temporary directory for in-progress downloads. Override to a path on the same filesystem as the Jellyfin library for atomic moves.</td>
+          </tr>
+          <tr>
+            <td><code>services.ytdlfin.user</code></td>
+            <td><code>ytdlfin</code></td>
+            <td>User to run the service as. Set to <code>config.services.jellyfin.user</code> to share library write access without ACL changes.</td>
+          </tr>
+          <tr>
+            <td><code>services.ytdlfin.group</code></td>
+            <td><code>ytdlfin</code></td>
+            <td>Group to run the service as. Set to <code>config.services.jellyfin.group</code> if running alongside Jellyfin.</td>
+          </tr>
+          <tr>
+            <td><code>services.ytdlfin.environmentFile</code></td>
+            <td><em>required</em></td>
+            <td>Path to a file containing <code>SECRET_KEY</code>, <code>OIDC_CLIENT_ID</code>, and <code>OIDC_CLIENT_SECRET</code> as <code>KEY=VALUE</code> pairs.</td>
+          </tr>
+          <tr>
+            <td><code>services.ytdlfin.settings.oidcIssuerUrl</code></td>
+            <td><em>required</em></td>
+            <td>Base URL of your PocketID (or other OIDC provider) instance, e.g. <code>https://id.example.com</code>.</td>
+          </tr>
+          <tr>
+            <td><code>services.ytdlfin.settings.oidcRedirectUri</code></td>
+            <td><em>required</em></td>
+            <td>Full OIDC callback URL, e.g. <code>https://ytdlfin.example.com/auth/callback</code>.</td>
+          </tr>
+          <tr>
+            <td><code>services.ytdlfin.settings.oidcAdminGroup</code></td>
+            <td><em>required</em></td>
+            <td>PocketID group name whose members receive admin privileges (category management, full history). Must match the group name exactly as configured in PocketID.</td>
+          </tr>
+          <tr>
+            <td><code>services.ytdlfin.settings.oidcUserGroup</code></td>
+            <td><em>required</em></td>
+            <td>PocketID group name whose members have regular user access (submit downloads, view own history). Must match the group name exactly as configured in PocketID.</td>
+          </tr>
+          <tr>
+            <td><code>services.ytdlfin.settings.mediaDirectories</code></td>
+            <td><code>[]</code></td>
+            <td>Jellyfin library root paths. Each path is added to the systemd service's <code>ReadWritePaths</code>; ytdlfin cannot write outside these paths.</td>
+          </tr>
+          <tr>
+            <td><code>services.ytdlfin.settings.logLevel</code></td>
+            <td><code>info</code></td>
+            <td>uvicorn log level. One of <code>debug</code>, <code>info</code>, <code>warning</code>, <code>error</code>.</td>
+          </tr>
+          <tr>
+            <td><code>services.ytdlfin.settings.trustedProxyIps</code></td>
+            <td><code>127.0.0.1</code></td>
+            <td>IPs allowed to set <code>X-Forwarded-*</code> headers. The default is correct for same-host nginx. Set to <code>*</code> only for LAN deployments where nginx runs on a different host.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Backups</h2>
+    <p>
+      Only <code>dataDir</code> needs to be included in backups. It contains
+      <code>ytdlfin.db</code>, which holds all download history and category configuration.
+    </p>
+    <p>
+      <code>stagingDir</code> holds downloads that are currently in progress and is ephemeral.
+      Do not back it up — any partial downloads are discarded and re-queued on restart.
+    </p>
+    <div class="note">
+      <strong>Tip:</strong> A simple daily restic snapshot of <code>dataDir</code> is sufficient.
+      SQLite is safe to copy while the app is running as long as you use a method that reads a
+      consistent snapshot (restic, SQLite's <code>.backup</code> command, or a filesystem
+      snapshot). A minimal restic paths entry:
+    </div>
+    <pre><code class="language-nix">services.restic.backups.daily = {
+  paths = [
+    config.services.ytdlfin.dataDir
+  ];
+};</code></pre>
+  </main>
+
+  <footer class="container">
+    <div class="footer-inner">
+      <a href="https://github.com/genebean/ytdlfin" class="brand" target="_blank" rel="noopener">
+        <img src="../images/ytdlfin-icon.webp" alt="" aria-hidden="true" width="20" height="20" style="flex-shrink:0;border-radius:3px" />
+        <span class="brand-ytdl">ytdl</span><span class="brand-fin">fin</span>
+        <span class="footer-on-gh">on GitHub</span>
+      </a>
+      <span class="footer-sep" aria-hidden="true">|</span>
+      <a href="../index.html">Docs</a>
+    </div>
+  </footer>
+
+  <script>
+    function systemPrefersDark() {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function applyTheme(theme, stored) {
+      document.documentElement.setAttribute('data-theme', theme);
+      var mode = stored === null ? 'auto' : stored;
+      ['auto', 'light', 'dark'].forEach(function (m) {
+        var btn = document.getElementById('theme-' + m);
+        if (btn) btn.classList.toggle('active', m === mode);
+      });
+    }
+    function setThemeMode(mode) {
+      if (mode === 'auto') {
+        localStorage.removeItem('ytdlfin-theme');
+        applyTheme(systemPrefersDark() ? 'dark' : 'light', null);
+      } else {
+        localStorage.setItem('ytdlfin-theme', mode);
+        applyTheme(mode, mode);
+      }
+    }
+    function toggleNav() {
+      var links = document.getElementById('nav-links');
+      var btn = document.getElementById('nav-toggle');
+      var open = links.classList.toggle('open');
+      btn.setAttribute('aria-expanded', String(open));
+    }
+    document.addEventListener('click', function (e) {
+      var links = document.getElementById('nav-links');
+      var toggle = document.getElementById('nav-toggle');
+      if (links && toggle && !links.contains(e.target) && !toggle.contains(e.target)) {
+        links.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+    var _stored = localStorage.getItem('ytdlfin-theme');
+    applyTheme(document.documentElement.getAttribute('data-theme') || 'light', _stored);
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+      if (!localStorage.getItem('ytdlfin-theme')) {
+        applyTheme(e.matches ? 'dark' : 'light', null);
+      }
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"
+          integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc"
+          crossorigin="anonymous" data-manual></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"
+          integrity="sha384-9WmlN8ABpoFSSHvBGGjhvB3E/D8UkNB9HpLJjBQFC2VSQsM1odiQDv4NbEo+7l15"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-nix.min.js"
+          integrity="sha384-wksv5blJj8j0eB2tgMbI3llHb8NtaB2NU7dBgmQ2eSWa/OcvY6z/RN9vyt0PRufu"
+          crossorigin="anonymous"></script>
+  <script>Prism.highlightAll();</script>
+</body>
+</html>

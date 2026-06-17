@@ -142,7 +142,7 @@ All config via env vars. The NixOS module sets non-secret vars and loads secrets
 | `OIDC_REDIRECT_URI` | Yes | Full callback URL |
 | `ADMIN_GROUP` | Yes | PocketID group name for admin access |
 | `USER_GROUP` | Yes | PocketID group name for regular user access |
-| `PORT` | No | Default: 8000 |
+| `PORT` | No | Default: 8001 |
 | `LOG_LEVEL` | No | Default: info |
 | `HTTPS_ONLY` | No | Set `true` behind an HTTPS proxy; marks cookies Secure and trusts X-Forwarded-Proto |
 | `TRUSTED_PROXY_IPS` | No | Default: `*` (trust all). IPs allowed to set X-Forwarded-* headers. Set to `127.0.0.1` for same-host nginx. |
@@ -175,7 +175,7 @@ proxy_set_header Host              $host;
 proxy_set_header X-Real-IP         $remote_addr;
 proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $scheme;
-proxy_pass http://127.0.0.1:8000;
+proxy_pass http://127.0.0.1:8001;
 ```
 
 **ytdlfin** needs `HTTPS_ONLY=true` in its environment (the NixOS module sets this

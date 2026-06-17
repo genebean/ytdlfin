@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    (function () {
+      var stored = localStorage.getItem('ytdlfin-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', stored || (prefersDark ? 'dark' : 'light'));
+    })();
+  </script>
+  <title>ytdlfin — Container deployment</title>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="ytdlfin" />
+  <meta property="og:title" content="ytdlfin — Container deployment" />
+  <meta property="og:description" content="Deploy ytdlfin on any Linux host using rootless Podman and podman-compose." />
+  <meta property="og:image" content="https://genebean.github.io/ytdlfin/images/ytdlfin-banner.webp" />
+  <meta property="og:url" content="https://genebean.github.io/ytdlfin/deploy/container.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://genebean.github.io/ytdlfin/images/ytdlfin-banner.webp" />
+  <link rel="icon" href="../images/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="../images/favicon-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css"
+    integrity="sha384-L1dWfspMTHU/ApYnFiMz2QID/PlP1xCW9visvBdbEkOLkSSWsP6ZJWhPw6apiXxU"
+    crossorigin="anonymous"
+  />
+  <link rel="stylesheet" href="../ytdlfin.css" />
+  <style>
+    /* === Hero === */
+    .hero {
+      padding: 2.5rem 0 1.5rem;
+      border-bottom: 1px solid var(--yt-border);
+      margin-bottom: 2rem;
+    }
+    .hero h1 {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: var(--yt-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      margin-bottom: 0.4rem;
+      border: none;
+      padding: 0;
+    }
+    .hero p { color: var(--yt-muted); margin: 0; font-size: 1.05rem; }
+
+    /* === Content typography === */
+    h2 {
+      margin-top: 2.5rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--yt-border);
+      color: var(--yt-text);
+    }
+    h3 { margin-top: 1.5rem; color: var(--yt-text); }
+
+    pre {
+      background: var(--yt-card);
+      border: 1px solid var(--yt-border);
+      border-radius: var(--pico-border-radius);
+      padding: 1em;
+      overflow-x: auto;
+      font-size: 0.9em;
+      line-height: 1.5;
+    }
+    pre code { background: none; padding: 0; font-size: inherit; border: none; }
+    code {
+      background: var(--yt-card);
+      border: 1px solid var(--yt-border);
+      padding: 0.1em 0.35em;
+      border-radius: 3px;
+      font-size: 0.88em;
+    }
+    table { font-size: 0.93rem; }
+
+    .note {
+      background: var(--yt-card);
+      border-left: 3px solid var(--yt-purple);
+      border-radius: 0 var(--pico-border-radius) var(--pico-border-radius) 0;
+      padding: 0.75em 1em;
+      margin: 1em 0;
+    }
+    .note strong { color: var(--yt-purple); }
+
+    ol li { margin-bottom: 0.6rem; }
+    ol li:last-child { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul>
+        <li>
+          <a href="../index.html" class="brand">
+            <img src="../images/ytdlfin-icon.webp" alt="" aria-hidden="true" width="24" height="24" style="flex-shrink:0;border-radius:4px" />
+            <span class="brand-ytdl">ytdl</span><span class="brand-fin">fin</span>
+          </a>
+        </li>
+        <li>
+          <button id="nav-toggle" class="nav-hamburger" aria-label="Menu" aria-expanded="false" onclick="toggleNav()">☰</button>
+        </li>
+      </ul>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="../index.html">Docs home</a></li>
+        <li><a href="../reference/spec.html">Spec</a></li>
+        <li><a href="../brand.html">Brand</a></li>
+        <li><a href="https://github.com/genebean/ytdlfin" target="_blank" rel="noopener">GitHub</a></li>
+        <li>
+          <div class="theme-picker" role="group" aria-label="Theme">
+            <button type="button" id="theme-auto"  onclick="setThemeMode('auto')">auto</button>
+            <button type="button" id="theme-light" onclick="setThemeMode('light')">☀️</button>
+            <button type="button" id="theme-dark"  onclick="setThemeMode('dark')">🌙</button>
+          </div>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="hero">
+      <h1>Container deployment</h1>
+      <p>Deploy ytdlfin on any Linux host using rootless Podman</p>
+    </div>
+
+    <h2>Prerequisites</h2>
+    <div class="note">
+      <strong>Note:</strong> The following must already be in place before following this guide.
+      Installation and configuration of these components is not covered here.
+    </div>
+    <ul>
+      <li><strong>Jellyfin</strong> — running on the host with its media library accessible at known filesystem paths.</li>
+      <li><strong>Rootless Podman and podman-compose</strong> — installed on the host.</li>
+      <li><strong>nginx</strong> — configured to terminate TLS and reverse-proxy to ytdlfin.</li>
+      <li><strong>TLS certificate</strong> — issued by Let's Encrypt (via certbot) or another trusted CA.</li>
+      <li><strong>PocketID or another OIDC provider</strong> — with a client application registered for ytdlfin, yielding a client ID and client secret.</li>
+    </ul>
+
+    <h2>Why rootless Podman</h2>
+    <p>
+      ytdlfin must write downloaded files directly into Jellyfin's media directories. Running the
+      container as root or applying complex ACLs to share access are both undesirable. Rootless
+      Podman with <code>--userns=keep-id</code> (set as <code>userns_mode: keep-id</code> in the
+      compose file) solves this cleanly: the Linux kernel maps the UID and GID of the user who
+      launched Podman straight into the container unchanged. As a result, any file the container
+      process writes to a mounted volume appears on the host owned by that same user — no root
+      required, no ACL changes needed.
+    </p>
+    <p>
+      This is why the container must be started by (or run as) the same user that Jellyfin runs
+      as. On most systems that user is <code>jellyfin</code>.
+    </p>
+
+    <h2>Step-by-step deployment</h2>
+
+    <h3>1. Install Podman and podman-compose</h3>
+    <p>On Ubuntu or Debian:</p>
+    <pre><code class="language-bash">sudo apt update
+sudo apt install podman podman-compose</code></pre>
+    <p>Verify the installation:</p>
+    <pre><code class="language-bash">podman --version
+podman-compose --version</code></pre>
+
+    <h3>2. Create data and staging directories</h3>
+    <p>
+      Create the directories that will hold the SQLite database and the in-progress download
+      staging area. Both must be owned by the jellyfin user.
+    </p>
+    <pre><code class="language-bash">sudo mkdir -p /var/lib/ytdlfin/data /var/lib/ytdlfin/staging
+sudo chown -R jellyfin:jellyfin /var/lib/ytdlfin</code></pre>
+    <div class="note">
+      <strong>Tip:</strong> For atomic moves (rename instead of copy), <code>STAGING_DIR</code>
+      should be on the same filesystem as your Jellyfin media library. If your library lives on a
+      separate mount, consider placing the staging directory there — for example,
+      <code>/path/to/jellyfin/.ytdlfin-staging</code>.
+    </div>
+
+    <h3>3. Create a working directory and copy the compose file</h3>
+    <p>
+      Run the following as the jellyfin user. Copy <code>compose.yml</code> from the
+      <code>contrib/</code> directory of the ytdlfin repository and edit it to match your
+      environment. Pay attention to the <code># EDIT ME</code> comments.
+    </p>
+    <pre><code class="language-bash">sudo -u jellyfin mkdir -p /home/jellyfin/.config/ytdlfin
+# Copy from the repo or download from GitHub, then edit
+sudo -u jellyfin cp contrib/compose.yml /home/jellyfin/.config/ytdlfin/compose.yml</code></pre>
+    <p>The full annotated compose file (<code>contrib/compose.yml</code>):</p>
+    <pre><code class="language-yaml"># ytdlfin — rootless Podman deployment
+#
+# Prerequisites: Podman, podman-compose, Jellyfin, nginx + Let's Encrypt, PocketID (or other OIDC provider)
+# Full guide: https://genebean.github.io/ytdlfin/deploy/container.html
+#
+# Quick start:
+#   1. Copy this file and ytdlfin.env.example to a working directory.
+#   2. Rename ytdlfin.env.example → ytdlfin.env and fill in the secrets.
+#   3. Edit the environment and volume sections below (look for EDIT ME comments).
+#   4. Run as the jellyfin user: podman compose up -d
+
+name: ytdlfin
+
+services:
+  ytdlfin:
+    image: ghcr.io/genebean/ytdlfin:latest
+    restart: on-failure:5
+
+    # --userns=keep-id maps the UID/GID of the user running podman (i.e. the
+    # jellyfin user) into the container unchanged.  Files written to the
+    # mounted volumes will be owned by that same UID on the host, so Jellyfin
+    # can read them without any permission changes.
+    userns_mode: keep-id
+
+    # Secrets: SECRET_KEY, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET
+    env_file: ytdlfin.env
+
+    environment:
+      DATA_DIR: /data
+      STAGING_DIR: /staging
+      PORT: "8001"
+
+      OIDC_ISSUER_URL: https://id.example.com          # EDIT ME
+      OIDC_REDIRECT_URI: https://ytdlfin.example.com/auth/callback  # EDIT ME
+      ADMIN_GROUP: ytdlfin-admins                       # EDIT ME — must match PocketID group name exactly
+      USER_GROUP: ytdlfin-users                         # EDIT ME — must match PocketID group name exactly
+
+      # Must be true: the app expects to sit behind an HTTPS reverse proxy
+      # (nginx + Let's Encrypt).  This marks session cookies Secure and enables
+      # correct scheme detection from X-Forwarded-Proto.
+      HTTPS_ONLY: "true"
+      # The IP(s) of your nginx proxy.  "127.0.0.1" is correct when nginx runs
+      # on the same host.  Set to "*" only on a fully firewalled LAN.
+      TRUSTED_PROXY_IPS: "127.0.0.1"
+
+      LOG_LEVEL: info
+
+    volumes:
+      # Persistent data (SQLite database).  Back up this directory with restic.
+      - /var/lib/ytdlfin/data:/data
+
+      # Staging area for in-progress downloads.  For atomic moves, this must
+      # be on the same filesystem as your Jellyfin library paths below.
+      # EDIT ME — ideally something like /path/to/jellyfin/.ytdlfin-staging
+      - /var/lib/ytdlfin/staging:/staging
+
+      # Jellyfin media library.  Mount at the EXACT SAME absolute path as on
+      # the host so that category paths stored in the database remain valid
+      # inside the container.  Add one entry per library root.
+      # EDIT ME
+      - /path/to/jellyfin/media:/path/to/jellyfin/media
+
+    ports:
+      # Bind only to localhost — nginx terminates TLS and proxies here.
+      - "127.0.0.1:8001:8001"</code></pre>
+    <div class="note">
+      <strong>Important:</strong> Media library volumes must be mounted at the <em>exact same
+      absolute path</em> as on the host. Category paths are stored as absolute paths in the
+      SQLite database; if the path inside the container differs, writes will fail.
+    </div>
+
+    <h3>4. Create the secrets file</h3>
+    <p>
+      Copy <code>ytdlfin.env.example</code> to <code>ytdlfin.env</code> in the same directory as
+      your <code>compose.yml</code>, then fill in the real values. Set the file mode to 0600 so
+      only the jellyfin user can read it.
+    </p>
+    <pre><code class="language-bash">sudo -u jellyfin cp contrib/ytdlfin.env.example /home/jellyfin/.config/ytdlfin/ytdlfin.env
+sudo chmod 0600 /home/jellyfin/.config/ytdlfin/ytdlfin.env</code></pre>
+    <p>Contents of <code>ytdlfin.env.example</code>:</p>
+    <pre><code class="language-bash"># ytdlfin secrets — copy to ytdlfin.env and fill in real values.
+# This file is loaded by podman compose as env_file.
+# Keep ytdlfin.env mode 0600 and never commit it.
+
+# 32+ random characters.  Generate with: openssl rand -hex 32
+SECRET_KEY=CHANGE_ME
+
+# From your PocketID (or other OIDC provider) client application registration.
+OIDC_CLIENT_ID=CHANGE_ME
+OIDC_CLIENT_SECRET=CHANGE_ME</code></pre>
+    <p>Generate a strong secret key:</p>
+    <pre><code class="language-bash">openssl rand -hex 32</code></pre>
+
+    <h3>5. Start the stack</h3>
+    <p>Run this as the jellyfin user from the directory containing your <code>compose.yml</code>:</p>
+    <pre><code class="language-bash">sudo -u jellyfin bash -c 'cd ~/.config/ytdlfin && podman compose up -d'</code></pre>
+
+    <h3>6. Verify</h3>
+    <p>Tail the logs to confirm the app started cleanly:</p>
+    <pre><code class="language-bash">sudo -u jellyfin bash -c 'cd ~/.config/ytdlfin && podman compose logs -f'</code></pre>
+    <p>Then confirm the app is responding on localhost (before nginx is wired up):</p>
+    <pre><code class="language-bash">curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8001/</code></pre>
+    <p>A redirect (302) or login page (200) response confirms the app is running.</p>
+
+    <h2>nginx reverse proxy</h2>
+    <p>
+      Place the following server blocks in your nginx configuration (for example, in
+      <code>/etc/nginx/sites-available/ytdlfin</code>). Replace
+      <code>ytdlfin.example.com</code> with your actual domain. After editing, run
+      <code>sudo certbot --nginx -d ytdlfin.example.com</code> to obtain and install the
+      Let's Encrypt certificate, or adapt for your own CA.
+    </p>
+    <pre><code class="language-nginx"># HTTP — redirect all traffic to HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ytdlfin.example.com;
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# HTTPS — terminate TLS and proxy to the ytdlfin container
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name ytdlfin.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/ytdlfin.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ytdlfin.example.com/privkey.pem;
+    include             /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+
+    location / {
+        proxy_pass         http://127.0.0.1:8001;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}</code></pre>
+    <p>Enable the site and reload nginx:</p>
+    <pre><code class="language-bash">sudo ln -s /etc/nginx/sites-available/ytdlfin /etc/nginx/sites-enabled/ytdlfin
+sudo nginx -t && sudo systemctl reload nginx</code></pre>
+
+    <h2>Auto-start with systemd (optional)</h2>
+    <p>
+      This section is optional. If you prefer another orchestration tool (Ansible, Puppet, etc.)
+      to manage the compose stack, skip it — the stack starts and stops with
+      <code>podman compose up -d</code> and <code>podman compose down</code> regardless.
+    </p>
+    <p>
+      The repository ships an optional systemd <em>user</em> unit at
+      <code>contrib/ytdlfin.service</code> that starts the compose stack automatically at boot.
+      Because this is a user-level unit (not a system unit), the jellyfin user must have linger
+      enabled so that the unit starts before anyone logs in.
+    </p>
+    <p>Install and enable the unit (run as the jellyfin user, or prefix with <code>sudo -u jellyfin</code>):</p>
+    <ol>
+      <li>
+        Copy the unit file into the jellyfin user's systemd directory:
+        <pre><code class="language-bash">mkdir -p ~/.config/systemd/user
+cp contrib/ytdlfin.service ~/.config/systemd/user/</code></pre>
+      </li>
+      <li>
+        Edit the <code>WorkingDirectory=</code> line in the unit file to point at the directory
+        containing your <code>compose.yml</code>:
+        <pre><code>WorkingDirectory=%h/.config/ytdlfin</code></pre>
+        (<code>%h</code> expands to the user's home directory.)
+      </li>
+      <li>
+        Enable linger so the user service starts at boot without an interactive login session:
+        <pre><code class="language-bash">sudo loginctl enable-linger jellyfin</code></pre>
+      </li>
+      <li>
+        Reload the user daemon and enable the unit:
+        <pre><code class="language-bash">systemctl --user daemon-reload
+systemctl --user enable --now ytdlfin</code></pre>
+      </li>
+    </ol>
+    <p>Useful commands once the unit is running:</p>
+    <pre><code class="language-bash">systemctl --user status ytdlfin
+systemctl --user restart ytdlfin
+journalctl --user -u ytdlfin -f</code></pre>
+    <p>
+      To trigger an upgrade via systemd (pulls new images then recreates containers):
+    </p>
+    <pre><code class="language-bash">systemctl --user reload ytdlfin</code></pre>
+
+    <h2>Upgrades</h2>
+    <p>Pull the latest image and recreate the container. Run as the jellyfin user from the
+    directory containing your <code>compose.yml</code>:</p>
+    <pre><code class="language-bash">podman compose pull
+podman compose up -d --force-recreate</code></pre>
+    <p>
+      The image is tagged both as <code>latest</code> and with the version number (for example,
+      <code>ghcr.io/genebean/ytdlfin:1.2.3</code>). Pin to a version tag in
+      <code>compose.yml</code> if you prefer explicit control over when upgrades apply.
+    </p>
+
+    <h2>Backups</h2>
+    <p>
+      Only <code>DATA_DIR</code> (mounted at <code>/data</code> in the container, defaulting to
+      <code>/var/lib/ytdlfin/data</code> on the host) needs to be included in backups. It
+      contains the SQLite database with all download history and category configuration.
+    </p>
+    <p>
+      <code>STAGING_DIR</code> (<code>/staging</code> in the container) holds downloads that are
+      currently in progress. It does not need to be backed up — any partial downloads there are
+      discarded and re-queued on restart.
+    </p>
+    <div class="note">
+      <strong>Tip:</strong> Back up <code>DATA_DIR</code> with a tool such as restic. A simple
+      daily snapshot of <code>/var/lib/ytdlfin/data</code> is sufficient. SQLite is safe to copy
+      while the app is running as long as you use a method that reads a consistent snapshot
+      (restic, SQLite's <code>.backup</code> command, or a filesystem snapshot).
+    </div>
+  </main>
+
+  <footer class="container">
+    <div class="footer-inner">
+      <a href="https://github.com/genebean/ytdlfin" class="brand" target="_blank" rel="noopener">
+        <img src="../images/ytdlfin-icon.webp" alt="" aria-hidden="true" width="20" height="20" style="flex-shrink:0;border-radius:3px" />
+        <span class="brand-ytdl">ytdl</span><span class="brand-fin">fin</span>
+        <span class="footer-on-gh">on GitHub</span>
+      </a>
+      <span class="footer-sep" aria-hidden="true">|</span>
+      <a href="../index.html">Docs</a>
+    </div>
+  </footer>
+
+  <script>
+    function systemPrefersDark() {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function applyTheme(theme, stored) {
+      document.documentElement.setAttribute('data-theme', theme);
+      var mode = stored === null ? 'auto' : stored;
+      ['auto', 'light', 'dark'].forEach(function (m) {
+        var btn = document.getElementById('theme-' + m);
+        if (btn) btn.classList.toggle('active', m === mode);
+      });
+    }
+    function setThemeMode(mode) {
+      if (mode === 'auto') {
+        localStorage.removeItem('ytdlfin-theme');
+        applyTheme(systemPrefersDark() ? 'dark' : 'light', null);
+      } else {
+        localStorage.setItem('ytdlfin-theme', mode);
+        applyTheme(mode, mode);
+      }
+    }
+    function toggleNav() {
+      var links = document.getElementById('nav-links');
+      var btn = document.getElementById('nav-toggle');
+      var open = links.classList.toggle('open');
+      btn.setAttribute('aria-expanded', String(open));
+    }
+    document.addEventListener('click', function (e) {
+      var links = document.getElementById('nav-links');
+      var toggle = document.getElementById('nav-toggle');
+      if (links && toggle && !links.contains(e.target) && !toggle.contains(e.target)) {
+        links.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+    var _stored = localStorage.getItem('ytdlfin-theme');
+    applyTheme(document.documentElement.getAttribute('data-theme') || 'light', _stored);
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+      if (!localStorage.getItem('ytdlfin-theme')) {
+        applyTheme(e.matches ? 'dark' : 'light', null);
+      }
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"
+          integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc"
+          crossorigin="anonymous" data-manual></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"
+          integrity="sha384-9WmlN8ABpoFSSHvBGGjhvB3E/D8UkNB9HpLJjBQFC2VSQsM1odiQDv4NbEo+7l15"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"
+          integrity="sha384-AKAiycghK0jDCjD+aavMHzDkLzRR7Yzcwh3+xL/295cvyVMe+cxQfyQC8xxGGcI8"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-nginx.min.js"
+          integrity="sha384-OdjJsWuHX1UDLZwLom2vRDx/z4CJ3LJK1i9jqIT3OGyJ2y3n7bZ9XDW9jAjRu/W5"
+          crossorigin="anonymous"></script>
+  <script>Prism.highlightAll();</script>
+</body>
+</html>

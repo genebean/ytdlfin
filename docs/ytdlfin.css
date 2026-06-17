@@ -290,6 +290,90 @@ footer a:hover { color: var(--yt-blue); }
 .footer-inner { display:flex; align-items:center; justify-content:center; gap:0.75rem; flex-wrap:wrap; }
 .footer-sep { color: var(--yt-border); }
 
+/* === Prism.js syntax highlighting === */
+pre[class*="language-"],
+code[class*="language-"] {
+  color: #1a1c2e;
+  background: #f4f5fc;
+  font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+  font-size: 0.9em;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  line-height: 1.6;
+  tab-size: 2;
+  hyphens: none;
+}
+pre[class*="language-"] {
+  overflow: auto;
+  padding: 1em;
+  border-radius: var(--pico-border-radius);
+  border: 1px solid var(--yt-border);
+}
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata { color: #6b7280; font-style: italic; }
+.token.punctuation { color: #4b5563; }
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted { color: #b45309; }
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted { color: #0f6b3a; }
+.token.operator,
+.token.entity,
+.token.url { color: #374151; }
+.token.atrule,
+.token.attr-value,
+.token.keyword { color: #6d28d9; }
+.token.function,
+.token.class-name { color: #1a5a8a; }
+.token.regex,
+.token.important,
+.token.variable { color: #b45309; }
+
+[data-theme="dark"] pre[class*="language-"],
+[data-theme="dark"] code[class*="language-"] { color: #e8eaf6; background: #161827; }
+[data-theme="dark"] .token.comment,
+[data-theme="dark"] .token.prolog,
+[data-theme="dark"] .token.doctype,
+[data-theme="dark"] .token.cdata { color: #8891b0; }
+[data-theme="dark"] .token.punctuation { color: #9ca3af; }
+[data-theme="dark"] .token.property,
+[data-theme="dark"] .token.tag,
+[data-theme="dark"] .token.boolean,
+[data-theme="dark"] .token.number,
+[data-theme="dark"] .token.constant,
+[data-theme="dark"] .token.symbol,
+[data-theme="dark"] .token.deleted { color: #fbbf24; }
+[data-theme="dark"] .token.selector,
+[data-theme="dark"] .token.attr-name,
+[data-theme="dark"] .token.string,
+[data-theme="dark"] .token.char,
+[data-theme="dark"] .token.builtin,
+[data-theme="dark"] .token.inserted { color: #4dca82; }
+[data-theme="dark"] .token.operator,
+[data-theme="dark"] .token.entity,
+[data-theme="dark"] .token.url { color: #d1d5db; }
+[data-theme="dark"] .token.atrule,
+[data-theme="dark"] .token.attr-value,
+[data-theme="dark"] .token.keyword { color: #a78bfa; }
+[data-theme="dark"] .token.function,
+[data-theme="dark"] .token.class-name { color: #6ab4f2; }
+[data-theme="dark"] .token.regex,
+[data-theme="dark"] .token.important,
+[data-theme="dark"] .token.variable { color: #fbbf24; }
+
 /* === Hamburger === */
 .nav-hamburger {
   display: none;

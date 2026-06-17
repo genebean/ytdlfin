@@ -301,13 +301,13 @@ downloads (
     <h3>nginx configuration</h3>
     <p>nginx must forward the real client IP and scheme so uvicorn can reconstruct the
     correct request URL:</p>
-    <pre>location / {
-    proxy_pass http://127.0.0.1:8000;
+    <pre><code class="language-nginx">location / {
+    proxy_pass http://127.0.0.1:8001;
     proxy_set_header Host              $host;
     proxy_set_header X-Real-IP         $remote_addr;
     proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-}</pre>
+}</code></pre>
 
     <h3>Application behaviour</h3>
     <p>When <code>HTTPS_ONLY=true</code> (set automatically by the NixOS module):</p>
@@ -319,9 +319,9 @@ downloads (
       only transmit the session over TLS.</li>
     </ul>
     <p><code>TRUSTED_PROXY_IPS</code> controls which upstream IPs are allowed to set
-    forwarded headers. The default <code>*</code> (trust all) is appropriate for LAN
-    deployments protected by a physical firewall. Set to <code>127.0.0.1</code> if
-    tighter control is needed.</p>
+    forwarded headers. The default <code>127.0.0.1</code> is correct for same-host nginx.
+    Set to <code>*</code> to trust all upstream proxies, which is safe for LAN deployments
+    protected by a physical firewall where nginx may be on a different host.</p>
 
     <p class="note"><strong>Dev note:</strong> Leave <code>HTTPS_ONLY</code> unset (defaults
     to <code>false</code>) for local HTTP development. The session cookie will not be marked
@@ -370,64 +370,17 @@ downloads (
         <tr><td><code>OIDC_REDIRECT_URI</code></td><td>Yes</td><td>—</td><td>Full callback URL, e.g. https://ytdlfin.example.com/auth/callback</td></tr>
         <tr><td><code>ADMIN_GROUP</code></td><td>Yes</td><td>—</td><td>PocketID group name for admin access</td></tr>
         <tr><td><code>USER_GROUP</code></td><td>Yes</td><td>—</td><td>PocketID group name for regular user access</td></tr>
-        <tr><td><code>PORT</code></td><td>No</td><td>8000</td><td>HTTP listen port</td></tr>
+        <tr><td><code>PORT</code></td><td>No</td><td>8001</td><td>HTTP listen port</td></tr>
         <tr><td><code>LOG_LEVEL</code></td><td>No</td><td>info</td><td>uvicorn log level</td></tr>
         <tr><td><code>HTTPS_ONLY</code></td><td>No</td><td>false</td><td>Set <code>true</code> behind an HTTPS reverse proxy. Marks session cookies <code>Secure</code> and enables trusted proxy header processing. The NixOS module always sets this to <code>true</code>.</td></tr>
-        <tr><td><code>TRUSTED_PROXY_IPS</code></td><td>No</td><td>*</td><td>Comma-separated IPs (or <code>*</code>) allowed to set <code>X-Forwarded-*</code> headers. Default <code>*</code> is safe for LAN deployments behind a physical firewall.</td></tr>
+        <tr><td><code>TRUSTED_PROXY_IPS</code></td><td>No</td><td>127.0.0.1</td><td>Comma-separated IPs (or <code>*</code>) allowed to set <code>X-Forwarded-*</code> headers. Default <code>127.0.0.1</code> is correct for same-host nginx. Set to <code>*</code> for LAN deployments where nginx runs on a different host behind a physical firewall.</td></tr>
       </tbody>
     </table></figure>
 
     <h2>NixOS Module</h2>
-    <p>The module is exported as <code>nixosModules.default</code>. Add it to your host
-    flake's <code>modules</code> list, then configure the service separately:</p>
-    <pre># flake.nix
-inputs.ytdlfin = {
-  url = "github:genebean/ytdlfin";
-  inputs.nixpkgs.follows = "nixpkgs";
-};
-
-nixosConfigurations.yourhost = nixpkgs.lib.nixosSystem {
-  modules = [
-    ytdlfin.nixosModules.default   # brings the module into scope; enable = false until you set it
-    ./hosts/yourhost/configuration.nix
-  ];
-};</pre>
-    <pre># configuration.nix (or a dedicated service file)
-services.ytdlfin = {
-  enable = true;
-  user  = config.services.jellyfin.user;   # share Jellyfin's identity for library writes
-  group = config.services.jellyfin.group;
-  stagingDir = "/orico/jellyfin/.ytdlfin-staging";
-  environmentFile = config.sops.secrets.ytdlfin-env.path;
-  settings = {
-    oidcIssuerUrl   = "https://id.example.com";
-    oidcRedirectUri = "https://ytdlfin.example.com/auth/callback";
-    oidcAdminGroup  = "ytdlfin-admins";
-    oidcUserGroup   = "ytdlfin-users";
-    mediaDirectories = [ "/orico/jellyfin/data" ];
-  };
-};</pre>
-
-    <h2>NixOS Module Options</h2>
-    <figure><table>
-      <thead><tr><th>Option</th><th>Default</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td><code>services.ytdlfin.enable</code></td><td>false</td><td>Enable the service</td></tr>
-        <tr><td><code>services.ytdlfin.port</code></td><td>8000</td><td>HTTP port</td></tr>
-        <tr><td><code>services.ytdlfin.dataDir</code></td><td>/var/lib/ytdlfin</td><td>DB directory (back this up)</td></tr>
-        <tr><td><code>services.ytdlfin.stagingDir</code></td><td>/var/lib/ytdlfin/staging</td><td>Override to same FS as Jellyfin library</td></tr>
-        <tr><td><code>services.ytdlfin.user</code></td><td>ytdlfin</td><td>Set to jellyfin user to share library access</td></tr>
-        <tr><td><code>services.ytdlfin.group</code></td><td>ytdlfin</td><td>Set to jellyfin group to share library access</td></tr>
-        <tr><td><code>services.ytdlfin.environmentFile</code></td><td>required</td><td>Path to secrets file (SECRET_KEY, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET)</td></tr>
-        <tr><td><code>services.ytdlfin.settings.oidcIssuerUrl</code></td><td>required</td><td>PocketID base URL</td></tr>
-        <tr><td><code>services.ytdlfin.settings.oidcRedirectUri</code></td><td>required</td><td>Full callback URL</td></tr>
-        <tr><td><code>services.ytdlfin.settings.oidcAdminGroup</code></td><td>required</td><td>PocketID group name for admin access</td></tr>
-        <tr><td><code>services.ytdlfin.settings.oidcUserGroup</code></td><td>required</td><td>PocketID group name for regular user access</td></tr>
-        <tr><td><code>services.ytdlfin.settings.mediaDirectories</code></td><td>[]</td><td>Jellyfin library paths needing write access</td></tr>
-        <tr><td><code>services.ytdlfin.settings.logLevel</code></td><td>info</td><td>uvicorn log level</td></tr>
-        <tr><td><code>services.ytdlfin.settings.trustedProxyIps</code></td><td>*</td><td>IPs allowed to set <code>X-Forwarded-*</code> headers. <code>*</code> trusts all upstream proxies (safe for LAN behind a firewall). Set to <code>127.0.0.1</code> if nginx is on the same host.</td></tr>
-      </tbody>
-    </table></figure>
+    <p>See the <a href="../deploy/nixos.html">NixOS deployment guide</a> for the full
+    walkthrough: flake input, service configuration, nginx virtual host, sops-nix secret
+    management, module options reference, and backup recommendations.</p>
 
     <h2>Decision Log</h2>
     <dl>
@@ -468,13 +421,13 @@ services.ytdlfin = {
       <dd>No build step. Both resources are pinned to exact versions with SHA-384 integrity
       hashes computed from the actual CDN content. Update the hashes whenever versions change.</dd>
 
-      <dt>Reverse proxy headers trusted from all IPs by default</dt>
-      <dd>The primary deployment target is a LAN environment where a physical firewall
-      controls perimeter access and only port 443 is exposed externally. Trusting
-      <code>X-Forwarded-*</code> from all upstream IPs (<code>TRUSTED_PROXY_IPS=*</code>)
-      is safe in this context and avoids per-deployment IP configuration. Operators who
-      need stricter trust (e.g. nginx on the same host) can set
-      <code>services.ytdlfin.settings.trustedProxyIps = "127.0.0.1"</code>.</dd>
+      <dt>Reverse proxy headers trusted from 127.0.0.1 by default</dt>
+      <dd>The default <code>TRUSTED_PROXY_IPS=127.0.0.1</code> is correct for the
+      standard deployment where nginx runs on the same host as ytdlfin. For LAN
+      deployments where nginx is on a separate host behind a physical firewall that
+      controls perimeter access, set <code>TRUSTED_PROXY_IPS=*</code> (or
+      <code>services.ytdlfin.settings.trustedProxyIps = "*"</code>) to trust all
+      upstream proxies.</dd>
     </dl>
   </main>
 
@@ -533,5 +486,18 @@ services.ytdlfin = {
       }
     });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"
+          integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc"
+          crossorigin="anonymous" data-manual></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"
+          integrity="sha384-9WmlN8ABpoFSSHvBGGjhvB3E/D8UkNB9HpLJjBQFC2VSQsM1odiQDv4NbEo+7l15"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-nix.min.js"
+          integrity="sha384-wksv5blJj8j0eB2tgMbI3llHb8NtaB2NU7dBgmQ2eSWa/OcvY6z/RN9vyt0PRufu"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-nginx.min.js"
+          integrity="sha384-OdjJsWuHX1UDLZwLom2vRDx/z4CJ3LJK1i9jqIT3OGyJ2y3n7bZ9XDW9jAjRu/W5"
+          crossorigin="anonymous"></script>
+  <script>Prism.highlightAll();</script>
 </body>
 </html>
