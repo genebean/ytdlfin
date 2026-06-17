@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: cobacoch/sri-check@v1
-        with:
-          verify-hashes: true
-          check-crossorigin: true
+      - uses: DeterminateSystems/nix-installer-action@v22
+      - uses: DeterminateSystems/magic-nix-cache-action@v14
+      - name: verify CDN SRI hashes
+        run: nix run .#check-sri
 
   css-sync:
     name: css sync check
