@@ -35,94 +35,17 @@
           pytest-cov
         ];
 
-      mkPackage =
-        pkgs:
-        pkgs.python3.pkgs.buildPythonApplication {
-          pname = "ytdlfin";
-          version = "0.1.0";
-          pyproject = true;
-
-          src = ./.;
-
-          build-system = [ pkgs.python3.pkgs.hatchling ];
-
-          dependencies = pythonDeps pkgs.python3.pkgs;
-
-          # ffmpeg must be on PATH for yt-dlp to mux video and audio streams.
-          makeWrapperArgs = [ "--prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.ffmpeg ]}" ];
-
-          meta = {
-            description = "Self-hosted video downloader for Jellyfin";
-            mainProgram = "ytdlfin";
-          };
+      ourPkgs =
+        system:
+        import ./pkgs {
+          pkgs = pkgsFor system;
+          inherit pythonDeps;
         };
-
-      mkCheckSri =
-        pkgs:
-        pkgs.writeScriptBin "ytdlfin-check-sri" ''
-          #!${pkgs.python3}/bin/python3
-          import re, sys, hashlib, base64, urllib.request, subprocess
-          from pathlib import Path
-
-          def sri(url):
-              with urllib.request.urlopen(url, timeout=15) as r:
-                  return "sha384-" + base64.b64encode(hashlib.sha384(r.read()).digest()).decode()
-
-          root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
-          failed = False
-          for f in sorted(root.rglob("*.html")):
-              if ".git" in f.parts:
-                  continue
-              tags = re.findall(r'<(?:script|link)\b[^>]*>', f.read_text(), re.DOTALL | re.IGNORECASE)
-              for tag in tags:
-                  url_m = re.search(r'(?:src|href)=["\'](?P<url>https://cdn\.jsdelivr\.net/[^"\']+)["\']', tag)
-                  hash_m = re.search(r'integrity=["\'](?P<hash>sha384-[^"\']+)["\']', tag)
-                  if not url_m or not hash_m:
-                      continue
-                  url, expected = url_m.group("url"), hash_m.group("hash")
-                  actual = sri(url)
-                  if actual == expected:
-                      print(f"OK   {f.relative_to(root)}: {url}")
-                  else:
-                      print(f"FAIL {f.relative_to(root)}: {url}")
-                      print(f"     expected: {expected}")
-                      print(f"     actual:   {actual}")
-                      failed = True
-
-          sys.exit(1 if failed else 0)
-        '';
 
       mkDevShell =
         pkgs:
         let
-          sriCheck = mkCheckSri pkgs;
-          runTests = pkgs.writeScriptBin "ytdlfin-test" ''
-            #!${pkgs.bash}/bin/bash
-            cd "$(git rev-parse --show-toplevel)"
-            exec pytest tests/ --cov=ytdlfin --cov-report=term-missing "$@"
-          '';
-          docsServe = pkgs.writeScriptBin "ytdlfin-docs-serve" ''
-            #!${pkgs.python3}/bin/python3
-            import http.server, os, subprocess, sys
-
-            port = int(sys.argv[1]) if len(sys.argv) > 1 else 4000
-
-            proj_root = subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()
-            os.chdir(os.path.join(proj_root, "docs"))
-
-            class QuietHTTPServer(http.server.ThreadingHTTPServer):
-                def handle_error(self, request, client_address):
-                    if sys.exc_info()[0] in (BrokenPipeError, ConnectionResetError):
-                        return
-                    super().handle_error(request, client_address)
-
-            print(f"Docs available at http://localhost:{port}")
-            try:
-                with QuietHTTPServer(("0.0.0.0", port), http.server.SimpleHTTPRequestHandler) as httpd:
-                    httpd.serve_forever()
-            except KeyboardInterrupt:
-                print("\nStopped.")
-          '';
+          p = ourPkgs pkgs.system;
         in
         pkgs.mkShell {
           packages = [
@@ -137,9 +60,9 @@
             pkgs.nixfmt-tree
             # Image tools for resizing docs/static assets.
             pkgs.imagemagick
-            runTests
-            docsServe
-            sriCheck
+            p.run-tests
+            p.docs-serve
+            p.check-sri
           ];
 
           shellHook = ''
@@ -161,8 +84,8 @@
     in
     {
       packages = forAllSystems (system: {
-        default = mkPackage (pkgsFor system);
-        check-sri = mkCheckSri (pkgsFor system);
+        default = (ourPkgs system).ytdlfin;
+        check-sri = (ourPkgs system).check-sri;
       });
 
       # `nix fmt` — format all Nix files in the tree using nixfmt
