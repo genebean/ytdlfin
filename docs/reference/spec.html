@@ -331,6 +331,7 @@ downloads (
     <figure><table>
       <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
       <tbody>
+        <tr><td>GET</td><td>/health</td><td>—</td><td>Health check: 200 <code>{"status":"ok"}</code> or 503 with <code>{"status":"error","detail":"worker"|"db"}</code></td></tr>
         <tr><td>GET</td><td>/auth/login</td><td>—</td><td>Initiate OIDC redirect</td></tr>
         <tr><td>GET</td><td>/auth/callback</td><td>—</td><td>OIDC callback, set session</td></tr>
         <tr><td>POST</td><td>/auth/logout</td><td>—</td><td>Clear session</td></tr>

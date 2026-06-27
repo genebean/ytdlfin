@@ -212,11 +212,25 @@ nixosConfigurations.yourhost = nixpkgs.lib.nixosSystem {
   recommendedProxySettings = true;   # sets Host, X-Real-IP, X-Forwarded-For, X-Forwarded-Proto automatically
   recommendedTlsSettings   = true;
 
+  # Rate-limit the unauthenticated health endpoint so bots can't hammer it.
+  # Uptime Kuma polls once per minute; 6r/m gives comfortable headroom.
+  # limit_req_zone must live in the http {} block — appendHttpConfig is the
+  # right place for it in the NixOS nginx module.
+  appendHttpConfig = ''
+    limit_req_zone $binary_remote_addr zone=ytdlfin_health:1m rate=6r/m;
+  '';
+
   virtualHosts."ytdlfin.example.com" = {
     enableACME = true;
     acmeRoot   = null;
     forceSSL   = true;
     locations."/".proxyPass = "http://127.0.0.1:${toString config.services.ytdlfin.port}";
+    locations."= /health" = {
+      proxyPass   = "http://127.0.0.1:${toString config.services.ytdlfin.port}";
+      extraConfig = ''
+        limit_req zone=ytdlfin_health burst=3 nodelay;
+      '';
+    };
   };
 };</code></pre>
     <div class="note">
@@ -224,6 +238,18 @@ nixosConfigurations.yourhost = nixpkgs.lib.nixosSystem {
       directory directly rather than a manual webroot challenge path. It is the standard pattern
       when <code>security.acme</code> is already configured system-wide.
     </div>
+
+    <h3>Health monitoring (Uptime Kuma)</h3>
+    <p>
+      <code>GET /health</code> is an unauthenticated endpoint suitable for uptime monitors.
+      It returns <code>200 {"status":"ok"}</code> when the app, its database connection, and
+      the background download worker are all healthy. If either the worker task has crashed or
+      the database is unreachable, it returns <code>503</code> with a <code>detail</code> field
+      identifying which component failed (<code>"db"</code> or <code>"worker"</code>).
+    </p>
+    <p>In Uptime Kuma, add an <strong>HTTP(s)</strong> monitor pointed at
+    <code>https://ytdlfin.example.com/health</code> and set the expected status code to
+    <strong>200</strong>. No credentials are required.</p>
 
     <h2>Secret management (sops-nix)</h2>
     <p>
