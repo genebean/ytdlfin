@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -63,8 +63,10 @@ async def lifespan(app: FastAPI):
 
     queue: asyncio.Queue[int] = asyncio.Queue()
     app.state.queue = queue
+    app.state.worker_conn = worker_conn
 
     worker_task = asyncio.create_task(download_worker(worker_conn, queue))
+    app.state.worker_task = worker_task
 
     yield
 
@@ -91,6 +93,17 @@ def create_app() -> FastAPI:
         https_only=HTTPS_ONLY,
         same_site="lax",
     )
+
+    @app.get("/health")
+    async def health(request: Request):
+        task = request.app.state.worker_task
+        if task.done() and not task.cancelled():
+            return JSONResponse({"status": "error", "detail": "worker"}, status_code=503)
+        try:
+            await request.app.state.worker_conn.execute("SELECT 1")
+        except Exception:
+            return JSONResponse({"status": "error", "detail": "db"}, status_code=503)
+        return {"status": "ok"}
 
     @app.exception_handler(NotAuthenticated)
     async def not_authenticated_handler(request: Request, exc: NotAuthenticated):

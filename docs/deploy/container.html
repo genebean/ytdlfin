@@ -294,18 +294,31 @@ OIDC_CLIENT_SECRET=CHANGE_ME</code></pre>
     <p>Tail the logs to confirm the app started cleanly:</p>
     <pre><code class="language-bash">sudo -u jellyfin bash -c 'cd ~/.config/ytdlfin && podman compose logs -f'</code></pre>
     <p>Then confirm the app is responding on localhost (before nginx is wired up):</p>
-    <pre><code class="language-bash">curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8001/</code></pre>
-    <p>A redirect (302) or login page (200) response confirms the app is running.</p>
+    <pre><code class="language-bash">curl -s http://127.0.0.1:8001/health</code></pre>
+    <p>A <code>{"status":"ok"}</code> response confirms the app is running and its database and
+    background worker are healthy. A 503 response includes a <code>detail</code> field identifying
+    which component failed (<code>"db"</code> or <code>"worker"</code>).</p>
 
     <h2>nginx reverse proxy</h2>
     <p>
-      Place the following server blocks in your nginx configuration (for example, in
+      Place the following in your nginx configuration (for example, in
       <code>/etc/nginx/sites-available/ytdlfin</code>). Replace
       <code>ytdlfin.example.com</code> with your actual domain. After editing, run
       <code>sudo certbot --nginx -d ytdlfin.example.com</code> to obtain and install the
       Let's Encrypt certificate, or adapt for your own CA.
     </p>
-    <pre><code class="language-nginx"># HTTP — redirect all traffic to HTTPS
+    <div class="note">
+      <strong>Note:</strong> The <code>limit_req_zone</code> directive must go in the
+      <code>http {}</code> block (e.g. in <code>/etc/nginx/nginx.conf</code> or a
+      <code>conf.d/</code> snippet), not inside a <code>server {}</code> block. The
+      <code>limit_req</code> line inside the <code>location</code> block references it by name.
+    </div>
+    <pre><code class="language-nginx"># In the http {} block — rate-limit the health endpoint so unauthenticated
+# bots can't hammer it.  Uptime Kuma polls once per minute; 6r/m gives
+# comfortable headroom while still blocking floods.
+limit_req_zone $binary_remote_addr zone=ytdlfin_health:1m rate=6r/m;
+
+# HTTP — redirect all traffic to HTTPS
 server {
     listen 80;
     listen [::]:80;
@@ -327,6 +340,16 @@ server {
     include             /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
 
+    # Rate-limit the unauthenticated health endpoint.
+    location = /health {
+        limit_req zone=ytdlfin_health burst=3 nodelay;
+        proxy_pass         http://127.0.0.1:8001;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+
     location / {
         proxy_pass         http://127.0.0.1:8001;
         proxy_set_header   Host              $host;
@@ -338,6 +361,18 @@ server {
     <p>Enable the site and reload nginx:</p>
     <pre><code class="language-bash">sudo ln -s /etc/nginx/sites-available/ytdlfin /etc/nginx/sites-enabled/ytdlfin
 sudo nginx -t && sudo systemctl reload nginx</code></pre>
+
+    <h3>Health monitoring (Uptime Kuma)</h3>
+    <p>
+      <code>GET /health</code> is an unauthenticated endpoint suitable for uptime monitors.
+      It returns <code>200 {"status":"ok"}</code> when the app, its database connection, and
+      the background download worker are all healthy. If either the worker task has crashed or
+      the database is unreachable, it returns <code>503</code> with a <code>detail</code> field
+      identifying which component failed (<code>"db"</code> or <code>"worker"</code>).
+    </p>
+    <p>In Uptime Kuma, add an <strong>HTTP(s)</strong> monitor pointed at
+    <code>https://ytdlfin.example.com/health</code> and set the expected status code to
+    <strong>200</strong>. No credentials are required.</p>
 
     <h2>Auto-start with systemd (optional)</h2>
     <p>
