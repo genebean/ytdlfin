@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: DeterminateSystems/nix-installer-action@v22
+      - uses: DeterminateSystems/nix-installer-action@v23
       - name: verify CDN SRI hashes
         run: nix run .#check-sri
 
@@ -44,7 +44,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
-      - uses: DeterminateSystems/nix-installer-action@v22
+      - uses: DeterminateSystems/nix-installer-action@v23
       - name: run tests
         run: nix develop --command pytest tests/ -v --junitxml=pytest-results.xml
       - name: publish test results
